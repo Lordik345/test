@@ -1,4 +1,3 @@
--- ИСПРАВЛЕНО: 'local' должно быть строго с маленькой буквы
 local CoreGui = game:GetService("CoreGui")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -19,7 +18,9 @@ local states = {
     SpeedToggle = false, WalkSpeedVal = 100,
     ESP = false,
     Aimbot = false,
-    Aim_FOV = 150
+    Aim_FOV = 150,
+    PushToggle = false, -- Включение отталкивания
+    PushDist = 15       -- Дистанция для триггера отталкивания
 }
 
 local menuToggles = {}
@@ -109,7 +110,7 @@ local ScrollContainer = Instance.new("ScrollingFrame")
 ScrollContainer.Size = UDim2.new(1, 0, 1, -50)
 ScrollContainer.Position = UDim2.new(0, 0, 0, 45)
 ScrollContainer.BackgroundTransparency = 1
-ScrollContainer.CanvasSize = UDim2.new(0, 0, 0, 580)
+ScrollContainer.CanvasSize = UDim2.new(0, 0, 0, 650) -- Увеличено под новые элементы
 ScrollContainer.ScrollBarThickness = 4
 ScrollContainer.Parent = MainPanel
 
@@ -316,6 +317,8 @@ createSlider("Радиус Аима (FOV)", 10, 500, states.Aim_FOV, function(va
 createToggle("Режим полета (Fly)", states.Fly, function(val) states.Fly = val end)
 createSlider("Скорость полета", 10, 200, states.FlySpeed, function(val) states.FlySpeed = val end)
 createToggle("Включить ESP (Подсветка)", states.ESP, function(val) states.ESP = val end)
+createToggle("Авто-Отталкивание", states.PushToggle, function(val) states.PushToggle = val val end)
+createSlider("Дистанция триггера", 5, 50, states.PushDist, function(val) states.PushDist = val end)
 
 -- [[ ЛОГИКА КЛЮЧА ]]
 CheckKeyBtn.MouseButton1Click:Connect(function()
@@ -477,3 +480,28 @@ RunService.RenderStepped:Connect(function()
         end
     end)
 end)
+
+-- [[ ЛОГИКА АВТО-ОТТАЛКИВАНИЯ (ПОДХОДИШЬ -> ОТТАЛКИВАЕТ) ]]
+RunService.Heartbeat:Connect(function()
+    if not states.PushToggle then return end
+    
+    local myChar = LocalPlayer.Character
+    local myRoot = myChar and myChar:FindFirstChild("HumanoidRootPart")
+    if not myRoot then return end
+    
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and not checkIsTeammate(player) then
+            local enemyRoot = player.Character:FindFirstChild("HumanoidRootPart")
+            local enemyHum = player.Character:FindFirstChildOfClass("Humanoid")
+            
+            if enemyRoot and enemyHum and enemyHum.Health > 0 then
+                local distance = (enemyRoot.Position - myRoot.Position).Magnitude
+                
+                -- Если враг ближе установленной дистанции
+                if distance <= states.PushDist then
+                    pcall(function()
+                        local direction = (enemyRoot.Position - myRoot.Position).Unit
+                        local pushVelocity = (direction * 180) + Vector3.new(0, 100, 0) -- Направление отталкивания
+                        
+                        -- Создаем импульс движения
+                        local bv = Instance.new("
