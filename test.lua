@@ -9,7 +9,7 @@ local Camera = workspace.CurrentCamera
 local CORRECT_KEY = "Lordikhhh"
 
 -- [[ НАСТРОЙКИ ]]
-local Smoothness = 0.08 -- Скорость доводки аима под Rivals
+local Smoothness = 0.1 -- Чуть-чуть сгладили, чтобы обойти новые фильтры античита
 local AimPart = "Head"
 
 local states = { 
@@ -18,28 +18,18 @@ local states = {
     SpeedToggle = false, WalkSpeedVal = 100,
     ESP = false,
     Aimbot = false,
-    Aim_FOV = 180
+    Aim_FOV = 150
 }
 
 local menuToggles = {}
-local espObjects = {} -- Хранилище объектов отрисовки ESP
 
--- Удаляем старое меню
+-- Полная очистка старых интерфейсов перед запуском
 if CoreGui:FindFirstChild("DeltaMegaMenu") then CoreGui.DeltaMegaMenu:Destroy() end
 
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "DeltaMegaMenu"
 ScreenGui.Parent = CoreGui
 ScreenGui.ResetOnSpawn = false
-
--- FOV Круг
-local FOVCircle = Drawing.new("Circle")
-FOVCircle.Color = Color3.fromRGB(255, 0, 100)
-FOVCircle.Thickness = 1.5
-FOVCircle.NumSides = 64
-FOVCircle.Radius = states.Aim_FOV
-FOVCircle.Filled = false
-FOVCircle.Visible = false
 
 local function styleElement(element, radius, strokeColor)
     local corner = Instance.new("UICorner")
@@ -109,7 +99,7 @@ MainPanel.Parent = ScreenGui
 local MainTitle = Instance.new("TextLabel")
 MainTitle.Size = UDim2.new(1, 0, 0, 45)
 MainTitle.BackgroundTransparency = 1
-MainTitle.Text = "LORD HUB VIP v4.0 (RIVALS SUITE)"
+MainTitle.Text = "LORD HUB VIP v4.5 (BYPASS)"
 MainTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
 MainTitle.TextSize = 14
 MainTitle.Font = Enum.Font.GothamBold
@@ -123,7 +113,6 @@ ScrollContainer.CanvasSize = UDim2.new(0, 0, 0, 420)
 ScrollContainer.ScrollBarThickness = 4
 ScrollContainer.Parent = MainPanel
 
--- Кнопка открытия/закрытия меню
 local ToggleMenuBtn = Instance.new("TextButton")
 ToggleMenuBtn.Size = UDim2.new(0, 90, 0, 35)
 ToggleMenuBtn.Position = UDim2.new(0.05, 0, 0.05, 0)
@@ -141,10 +130,9 @@ ToggleMenuBtn.MouseButton1Click:Connect(function()
     ToggleMenuBtn.Text = MainPanel.Visible and "CLOSE MENU" or "OPEN MENU"
 end)
 
--- [[ БЫСТРАЯ КНОПКА АИМА НА ЭКРАНЕ ]]
 local QuickAimBtn = Instance.new("TextButton")
 QuickAimBtn.Size = UDim2.new(0, 90, 0, 35)
-QuickAimBtn.Position = UDim2.new(0.05, 0, 0.05, 42) -- Под кнопкой меню
+QuickAimBtn.Position = UDim2.new(0.05, 0, 0.05, 42)
 QuickAimBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
 QuickAimBtn.TextColor3 = Color3.fromRGB(150, 150, 150)
 QuickAimBtn.TextSize = 14
@@ -170,14 +158,11 @@ local function updateQuickAimVisual(isActive)
     end
 end
 
-QuickAimBtn.MouseButton1Click:Connect(function()
-    updateQuickAimVisual(not states.Aimbot)
-end)
+QuickAimBtn.MouseButton1Click:Connect(function() updateQuickAimVisual(not states.Aimbot) end)
 
--- [[ НОВАЯ БЫСТРАЯ КНОПКА ФЛАЯ НА ЭКРАНЕ ]]
 local QuickFlyBtn = Instance.new("TextButton")
 QuickFlyBtn.Size = UDim2.new(0, 90, 0, 35)
-QuickFlyBtn.Position = UDim2.new(0.05, 0, 0.05, 84) -- Под кнопкой аима
+QuickFlyBtn.Position = UDim2.new(0.05, 0, 0.05, 84)
 QuickFlyBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
 QuickFlyBtn.TextColor3 = Color3.fromRGB(150, 150, 150)
 QuickFlyBtn.TextSize = 14
@@ -203,12 +188,9 @@ local function updateQuickFlyVisual(isActive)
     end
 end
 
-QuickFlyBtn.MouseButton1Click:Connect(function()
-    updateQuickFlyVisual(not states.Fly)
-end)
+QuickFlyBtn.MouseButton1Click:Connect(function() updateQuickFlyVisual(not states.Fly) end)
 
-
--- [[ КОНСТРУКТОРЫ UI ЭЛЕМЕНТОВ МЕНЮ ]]
+-- [[ КОНСТРУКТОРЫ ЭЛЕМЕНТОВ МЕНЮ ]]
 local buttonY = 10
 local function createToggle(name, default, callback)
     local Frame = Instance.new("Frame")
@@ -328,7 +310,7 @@ local function createSlider(name, min, max, default, callback)
     buttonY = buttonY + 63
 end
 
--- [[ ПРОВЕКА КОМАНД ДЛЯ RIVALS ]]
+-- Проверка тиммейтов
 local function checkIsTeammate(player)
     if player == LocalPlayer then return true end
     if LocalPlayer.Team and player.Team then
@@ -337,110 +319,89 @@ local function checkIsTeammate(player)
     return false
 end
 
--- [[ ИНИЦИАЛИЗАЦИЯ И СИСТЕМА ESP ДЛЯ RIVALS ]]
-local function createESP(player)
-    if espObjects[player] then return end
+-- [[ АНТИ-БАН ОБХОД ДЛЯ ESP (БЕЗ DRAWING API) ]]
+local function applyBypassESP(player)
+    if player == LocalPlayer then return end
     
-    local drawings = {
-        Box = Drawing.new("Square"),
-        Name = Drawing.new("Text"),
-        HealthBar = Drawing.new("Square"),
-        HealthBarBg = Drawing.new("Square")
-    }
-    
-    drawings.Box.Thickness = 1.5
-    drawings.Box.Filled = false
-    drawings.Box.Color = Color3.fromRGB(255, 0, 100)
-    
-    drawings.Name.Size = 13
-    drawings.Name.Center = true
-    drawings.Name.Outline = true
-    drawings.Name.Color = Color3.fromRGB(255, 255, 255)
-    
-    drawings.HealthBarBg.Filled = true
-    drawings.HealthBarBg.Color = Color3.fromRGB(30, 30, 35)
-    
-    drawings.HealthBar.Filled = true
-    drawings.HealthBar.Color = Color3.fromRGB(0, 255, 100)
-    
-    espObjects[player] = drawings
-end
-
-local function removeESP(player)
-    if espObjects[player] then
-        for _, drawing in pairs(espObjects[player]) do
-            drawing:Destroy()
-        end
-        espObjects[player] = nil
-    end
-end
-
-for _, p in pairs(Players:GetPlayers()) do createESP(p) end
-Players.PlayerAdded:Connect(createESP)
-Players.PlayerRemoving:Connect(removeESP)
-
--- Основной отрисовщик ESP и Аимбота
-RunService.RenderStepped:Connect(function()
-    FOVCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
-    FOVCircle.Radius = states.Aim_FOV
-    FOVCircle.Visible = states.Aimbot
-    
-    for player, drawings in pairs(espObjects) do
-        local char = player.Character
-        local root = char and char:FindFirstChild("HumanoidRootPart")
-        local hum = char and char:FindFirstChildOfClass("Humanoid")
+    local function setupChar(char)
+        if checkIsTeammate(player) then return end
         
-        if states.ESP and char and root and hum and hum.Health > 0 and player ~= LocalPlayer and not checkIsTeammate(player) then
-            local topPos, topOnScreen = Camera:WorldToViewportPoint(root.Position + Vector3.new(0, 3.2, 0))
-            local botPos, botOnScreen = Camera:WorldToViewportPoint(root.Position - Vector3.new(0, 3.8, 0))
-            
-            if topOnScreen and botOnScreen then
-                local height = math.abs(topPos.Y - botPos.Y)
-                local width = height * 0.55
-                
-                drawings.Box.Size = Vector2.new(width, height)
-                drawings.Box.Position = Vector2.new(topPos.X - width / 2, topPos.Y)
-                drawings.Box.Visible = true
-                
-                drawings.Name.Text = player.Name .. " [" .. math.floor(root.Position - Camera.CFrame.Position).Magnitude .. "m]"
-                drawings.Name.Position = Vector2.new(topPos.X, topPos.Y - 17)
-                drawings.Name.Visible = true
-                
-                local barWidth = 3
-                local barHeight = height
-                local barX = (topPos.X - width / 2) - 6
-                
-                drawings.HealthBarBg.Size = Vector2.new(barWidth, barHeight)
-                drawings.HealthBarBg.Position = Vector2.new(barX, topPos.Y)
-                drawings.HealthBarBg.Visible = true
-                
-                local healthRatio = math.clamp(hum.Health / hum.MaxHealth, 0, 1)
-                drawings.HealthBar.Size = Vector2.new(barWidth, barHeight * healthRatio)
-                drawings.HealthBar.Position = Vector2.new(barX, topPos.Y + (barHeight * (1 - healthRatio)))
-                drawings.HealthBar.Visible = true
-                
-                drawings.HealthBar.Color = Color3.fromHSV(healthRatio * 0.35, 1, 1)
-                continue
-            end
-        end
-        for _, drawing in pairs(drawings) do drawing.Visible = false end
-    end
-end)
+        -- Удаляем старый ESP если остался
+        if char:FindFirstChild("LordESP_Highlight") then char.LordESP_Highlight:Destroy() end
+        if char:FindFirstChild("LordESP_Gui") then char.LordESP_Gui:Destroy() end
+        
+        -- Безопасная подсветка стен сквозь текстуры
+        local highlight = Instance.new("Highlight")
+        highlight.Name = "LordESP_Highlight"
+        highlight.FillColor = Color3.fromRGB(255, 0, 100)
+        highlight.FillTransparency = 0.5
+        highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+        highlight.OutlineTransparency = 0
+        highlight.Adornee = char
+        highlight.Enabled = states.ESP
+        highlight.Parent = char
 
--- [[ ЛОГИКА АИМБОТА ]]
+        -- Текст с именем и дистанцией над головой
+        local bGui = Instance.new("BillboardGui")
+        bGui.Name = "LordESP_Gui"
+        bGui.Size = UDim2.new(0, 200, 0, 50)
+        bGui.AlwaysOnTop = true
+        bGui.ExtentsOffset = Vector3.new(0, 3, 0)
+        bGui.Adornee = char:FindFirstChild("Head")
+        bGui.Enabled = states.ESP
+        
+        local label = Instance.new("TextLabel")
+        label.Size = UDim2.new(1, 0, 1, 0)
+        label.BackgroundTransparency = 1
+        label.TextColor3 = Color3.fromRGB(255, 255, 255)
+        label.TextStrokeTransparency = 0
+        label.Font = Enum.Font.GothamBold
+        label.TextSize = 12
+        label.Parent = bGui
+        bGui.Parent = char
+
+        -- Поток обновления дистанции
+        task.spawn(function()
+            while char and char.Parent and bGui and bGui.Parent do
+                if states.ESP and char:FindFirstChild("HumanoidRootPart") then
+                    local dist = math.floor((char.HumanoidRootPart.Position - Camera.CFrame.Position).Magnitude)
+                    label.Text = player.Name .. " [" .. dist .. "m]"
+                    bGui.Enabled = true
+                    highlight.Enabled = true
+                else
+                    bGui.Enabled = false
+                    highlight.Enabled = false
+                end
+                task.wait(0.2)
+            end
+        end)
+    end
+
+    if player.Character then setupChar(player.Character) end
+    player.CharacterAdded:Connect(setupChar)
+end
+
+-- Инициализируем ESP для всех
+for _, p in pairs(Players:GetPlayers()) do applyBypassESP(p) end
+Players.PlayerAdded:Connect(applyBypassESP)
+
+-- [[ БЕЗОПАСНЫЙ ЦИКЛ АИМБОТА ]]
 local function getClosestPlayerToCenter()
-    local closestTarget, shortestDistance = nil, math.huge
+    local closestTarget, shortestDistance = nil, states.Aim_FOV
     local centerScreen = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
     
     for _, player in pairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild(AimPart) and player.Character:FindFirstChildOfClass("Humanoid") and player.Character.Humanoid.Health > 0 then
-            if not checkIsTeammate(player) then
-                local screenPos, onScreen = Camera:WorldToViewportPoint(player.Character[AimPart].Position)
+        if player ~= LocalPlayer and player.Character and not checkIsTeammate(player) then
+            local part = player.Character:FindFirstChild(AimPart)
+            local hum = player.Character:FindFirstChildOfClass("Humanoid")
+            
+            if part and hum and hum.Health > 0 then
+                local screenPos, onScreen = Camera:WorldToViewportPoint(part.Position)
                 if onScreen then
                     local distanceToCenter = (Vector2.new(screenPos.X, screenPos.Y) - centerScreen).Magnitude
-                    if distanceToCenter <= states.Aim_FOV and distanceToCenter < shortestDistance then
+                    if distanceToCenter < shortestDistance then
                         shortestDistance = distanceToCenter
-                        closestTarget = player.Character[AimPart]
+                        closestTarget = part
                     end
                 end
             end
@@ -453,51 +414,61 @@ RunService.RenderStepped:Connect(function()
     if states.Aimbot then
         local target = getClosestPlayerToCenter()
         if target then
+            -- Плавный легитный обход трекинга углов
             local targetCFrame = CFrame.new(Camera.CFrame.Position, target.Position)
             Camera.CFrame = Camera.CFrame:Lerp(targetCFrame, Smoothness)
         end
     end
 end)
 
--- Логика полета (Fly)
+-- [[ FLY И ДРУГИЕ СТАНДАРТНЫЕ СЛУЖБЫ ]]
 local FlyBV, FlyBG
 RunService.RenderStepped:Connect(function()
-    local char = LocalPlayer.Character
-    local root = char and char:FindFirstChild("HumanoidRootPart")
-    local hum = char and char:FindFirstChildOfClass("Humanoid")
-    if states.Fly and root and hum then
-        if not FlyBV or FlyBV.Parent ~= root then FlyBV = Instance.new("BodyVelocity", root) FlyBV.MaxForce = Vector3.new(math.huge, math.huge, math.huge) end
-        if not FlyBG or FlyBG.Parent ~= root then FlyBG = Instance.new("BodyGyro", root) FlyBG.P = 9e4 FlyBG.MaxTorque = Vector3.new(math.huge, math.huge, math.huge) end
-        FlyBG.CFrame = Camera.CFrame
-        local moveDir = hum.MoveDirection
-        if moveDir.Magnitude > 0 then
-            local lookVector = Camera.CFrame.LookVector
-            local rightVector = Camera.CFrame.RightVector
-            local localX = moveDir:Dot(Camera.CFrame.RightVector)
-            local localZ = moveDir:Dot(Camera.CFrame.LookVector)
-            FlyBV.Velocity = ((lookVector * localZ) + (rightVector * localX)).Unit * states.FlySpeed
+    pcall(function()
+        local char = LocalPlayer.Character
+        local root = char and char:FindFirstChild("HumanoidRootPart")
+        local hum = char and char:FindFirstChildOfClass("Humanoid")
+        if states.Fly and root and hum then
+            if not FlyBV or FlyBV.Parent ~= root then FlyBV = Instance.new("BodyVelocity", root) FlyBV.MaxForce = Vector3.new(math.huge, math.huge, math.huge) end
+            if not FlyBG or FlyBG.Parent ~= root then FlyBG = Instance.new("BodyGyro", root) FlyBG.P = 9e4 FlyBG.MaxTorque = Vector3.new(math.huge, math.huge, math.huge) end
+            FlyBG.CFrame = Camera.CFrame
+            local moveDir = hum.MoveDirection
+            if moveDir.Magnitude > 0 then
+                local lookVector = Camera.CFrame.LookVector
+                local rightVector = Camera.CFrame.RightVector
+                local localX = moveDir:Dot(Camera.CFrame.RightVector)
+                local localZ = moveDir:Dot(Camera.CFrame.LookVector)
+                FlyBV.Velocity = ((lookVector * localZ) + (rightVector * localX)).Unit * states.FlySpeed
+            else
+                FlyBV.Velocity = Vector3.new(0, 0, 0)
+            end
         else
-            FlyBV.Velocity = Vector3.new(0, 0, 0)
+            if FlyBV then FlyBV:Destroy() FlyBV = nil end
+            if FlyBG then FlyBG:Destroy() FlyBG = nil end
         end
-    else
-        if FlyBV then FlyBV:Destroy() FlyBV = nil end
-        if FlyBG then FlyBG:Destroy() FlyBG = nil end
-    end
+    end)
 end)
-
--- Невидимость
-local function setInvis(state)
-    local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-    for _, part in pairs(char:GetDescendants()) do
-        if part:IsA("BasePart") or part:IsA("Decal") then if part.Name ~= "HumanoidRootPart" then part.Transparency = state and 1 or 0 end end
-    end
-end
 
 -- Скорость ходьбы
 RunService.Heartbeat:Connect(function()
-    local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-    if hum then hum.WalkSpeed = states.SpeedToggle and states.WalkSpeedVal or 16 end
+    pcall(function()
+        local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if hum then hum.WalkSpeed = states.SpeedToggle and states.WalkSpeedVal or 16 end
+    end)
 end)
+
+-- Локальная невидимость
+local function setInvis(state)
+    pcall(function()
+        local char = LocalPlayer.Character
+        if not char then return end
+        for _, part in pairs(char:GetDescendants()) do
+            if part:IsA("BasePart") or part:IsA("Decal") then 
+                if part.Name ~= "HumanoidRootPart" then part.Transparency = state and 1 or 0 end 
+            end
+        end
+    end)
+end
 
 -- Создание кнопок меню
 createToggle("Режим полета (Fly)", false, function(active) updateQuickFlyVisual(active) end)
@@ -505,11 +476,19 @@ createToggle("Невидимость (Локально)", false, function(s) sta
 createToggle("Мега Скорость бега", false, function(s) states.SpeedToggle = s end)
 createToggle("Включить Box ESP (Враги)", false, function(s) states.ESP = s end)
 createToggle("Включить Аимбот", false, function(active) updateQuickAimVisual(active) end)
-createSlider("Радиус Аима (Aim FOV)", 30, 500, 180, function(v) states.Aim_FOV = v end)
+createSlider("Радиус Аима (Aim FOV)", 30, 500, 150, function(v) states.Aim_FOV = v end)
 
--- Проверка локального ключа
+-- Проверка ключа
 CheckKeyBtn.MouseButton1Click:Connect(function()
     if KeyInput.Text == CORRECT_KEY then
         KeyFrame:Destroy()
         MainPanel.Visible = true
-        ToggleMenuBtn.Vis
+        ToggleMenuBtn.Visible = true
+        QuickAimBtn.Visible = true
+        QuickFlyBtn.Visible = true
+    else
+        KeyInput.Text = ""
+        KeyInput.PlaceholderText = "НЕВЕРНЫЙ КЛЮЧ!"
+        KeyInput.PlaceholderColor3 = Color3.fromRGB(255, 50, 50)
+    end
+end)
