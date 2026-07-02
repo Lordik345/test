@@ -1,4 +1,4 @@
-local CoreGui = game:GetService("CoreGui")
+Local CoreGui = game:GetService("CoreGui")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -18,9 +18,7 @@ local states = {
     SpeedToggle = false, WalkSpeedVal = 100,
     ESP = false,
     Aimbot = false,
-    Aim_FOV = 150,
-    PushToggle = false, -- Включение отталкивания
-    PushDist = 10       -- Дистанция для триггера отталкивания
+    Aim_FOV = 150
 }
 
 local menuToggles = {}
@@ -111,7 +109,7 @@ local ScrollContainer = Instance.new("ScrollingFrame")
 ScrollContainer.Size = UDim2.new(1, 0, 1, -50)
 ScrollContainer.Position = UDim2.new(0, 0, 0, 45)
 ScrollContainer.BackgroundTransparency = 1
-ScrollContainer.CanvasSize = UDim2.new(0, 0, 0, 580) -- Увеличили под новые элементы
+ScrollContainer.CanvasSize = UDim2.new(0, 0, 0, 580)
 ScrollContainer.ScrollBarThickness = 4
 ScrollContainer.Parent = MainPanel
 
@@ -470,40 +468,3 @@ RunService.RenderStepped:Connect(function()
         end
     end)
 end)
-
--- [[ ЛОГИКА ЖЕСТКОГО ОТТАЛКИВАНИЯ (PUSH / FLING) ]]
-RunService.Heartbeat:Connect(function()
-    if not states.PushToggle then return end
-    
-    local myChar = LocalPlayer.Character
-    local myRoot = myChar and myChar:FindFirstChild("HumanoidRootPart")
-    if not myRoot then return end
-    
-    for _, player in pairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character and not checkIsTeammate(player) then
-            local enemyRoot = player.Character:FindFirstChild("HumanoidRootPart")
-            local enemyHum = player.Character:FindFirstChildOfClass("Humanoid")
-            
-            if enemyRoot and enemyHum and enemyHum.Health > 0 then
-                local distance = (enemyRoot.Position - myRoot.Position).Magnitude
-                
-                -- Если враг ближе установленной дистанции
-                if distance <= states.PushDist then
-                    pcall(function()
-                        local direction = (enemyRoot.Position - myRoot.Position).Unit
-                        local pushVelocity = (direction * 160) + Vector3.new(0, 90, 0) -- Направление отталкивания
-                        
-                        -- Линейный импульс
-                        local bv = Instance.new("BodyVelocity")
-                        bv.MaxForce = Vector3.new(1e7, 1e7, 1e7)
-                        bv.Velocity = pushVelocity
-                        bv.Parent = enemyRoot
-                        
-                        -- Угловой импульс (раскрутка)
-                        local ba = Instance.new("BodyAngularVelocity")
-                        ba.MaxTorque = Vector3.new(1e7, 1e7, 1e7)
-                        ba.AngularVelocity = Vector3.new(0, 6000, 0)
-                        ba.Parent = enemyRoot
-                        
-                        -- Очищаем элементы физики, чтобы запустить импульс
-                        task.
