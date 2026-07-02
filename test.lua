@@ -9,7 +9,7 @@ local Camera = workspace.CurrentCamera
 local CORRECT_KEY = "Lordikhhh"
 
 -- [[ НАСТРОЙКИ ]]
-local Smoothness = 0.1 -- Чуть-чуть сгладили, чтобы обойти новые фильтры античита
+local Smoothness = 0.15 -- Скорость наводки аима (чем выше, тем быстрее)
 local AimPart = "Head"
 
 local states = { 
@@ -18,7 +18,9 @@ local states = {
     SpeedToggle = false, WalkSpeedVal = 100,
     ESP = false,
     Aimbot = false,
-    Aim_FOV = 150
+    Aim_FOV = 150,
+    PushToggle = false, -- Включение отталкивания
+    PushDist = 10       -- Дистанция для триггера отталкивания
 }
 
 local menuToggles = {}
@@ -99,7 +101,7 @@ MainPanel.Parent = ScreenGui
 local MainTitle = Instance.new("TextLabel")
 MainTitle.Size = UDim2.new(1, 0, 0, 45)
 MainTitle.BackgroundTransparency = 1
-MainTitle.Text = "LORD HUB VIP v4.5 (BYPASS)"
+MainTitle.Text = "LORD HUB VIP v5.5"
 MainTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
 MainTitle.TextSize = 14
 MainTitle.Font = Enum.Font.GothamBold
@@ -109,10 +111,11 @@ local ScrollContainer = Instance.new("ScrollingFrame")
 ScrollContainer.Size = UDim2.new(1, 0, 1, -50)
 ScrollContainer.Position = UDim2.new(0, 0, 0, 45)
 ScrollContainer.BackgroundTransparency = 1
-ScrollContainer.CanvasSize = UDim2.new(0, 0, 0, 420)
+ScrollContainer.CanvasSize = UDim2.new(0, 0, 0, 580) -- Увеличили под новые элементы
 ScrollContainer.ScrollBarThickness = 4
 ScrollContainer.Parent = MainPanel
 
+-- Кнопка скрыть/показать меню
 local ToggleMenuBtn = Instance.new("TextButton")
 ToggleMenuBtn.Size = UDim2.new(0, 90, 0, 35)
 ToggleMenuBtn.Position = UDim2.new(0.05, 0, 0.05, 0)
@@ -130,6 +133,7 @@ ToggleMenuBtn.MouseButton1Click:Connect(function()
     ToggleMenuBtn.Text = MainPanel.Visible and "CLOSE MENU" or "OPEN MENU"
 end)
 
+-- [[ БЫСТРАЯ КНОПКА АИМА НА ЭКРАНЕ ]]
 local QuickAimBtn = Instance.new("TextButton")
 QuickAimBtn.Size = UDim2.new(0, 90, 0, 35)
 QuickAimBtn.Position = UDim2.new(0.05, 0, 0.05, 42)
@@ -160,6 +164,7 @@ end
 
 QuickAimBtn.MouseButton1Click:Connect(function() updateQuickAimVisual(not states.Aimbot) end)
 
+-- [[ БЫСТРАЯ КНОПКА ФЛАЯ НА ЭКРАНЕ ]]
 local QuickFlyBtn = Instance.new("TextButton")
 QuickFlyBtn.Size = UDim2.new(0, 90, 0, 35)
 QuickFlyBtn.Position = UDim2.new(0.05, 0, 0.05, 84)
@@ -310,7 +315,7 @@ local function createSlider(name, min, max, default, callback)
     buttonY = buttonY + 63
 end
 
--- Проверка тиммейтов
+-- Проверка команд (тиммейты)
 local function checkIsTeammate(player)
     if player == LocalPlayer then return true end
     if LocalPlayer.Team and player.Team then
@@ -319,18 +324,16 @@ local function checkIsTeammate(player)
     return false
 end
 
--- [[ АНТИ-БАН ОБХОД ДЛЯ ESP (БЕЗ DRAWING API) ]]
+-- [[ БЕЗОПАСНЫЙ ОБХОД ДЛЯ ESP (HIGHLIGHTS) ]]
 local function applyBypassESP(player)
     if player == LocalPlayer then return end
     
     local function setupChar(char)
         if checkIsTeammate(player) then return end
         
-        -- Удаляем старый ESP если остался
         if char:FindFirstChild("LordESP_Highlight") then char.LordESP_Highlight:Destroy() end
         if char:FindFirstChild("LordESP_Gui") then char.LordESP_Gui:Destroy() end
         
-        -- Безопасная подсветка стен сквозь текстуры
         local highlight = Instance.new("Highlight")
         highlight.Name = "LordESP_Highlight"
         highlight.FillColor = Color3.fromRGB(255, 0, 100)
@@ -341,7 +344,6 @@ local function applyBypassESP(player)
         highlight.Enabled = states.ESP
         highlight.Parent = char
 
-        -- Текст с именем и дистанцией над головой
         local bGui = Instance.new("BillboardGui")
         bGui.Name = "LordESP_Gui"
         bGui.Size = UDim2.new(0, 200, 0, 50)
@@ -360,7 +362,6 @@ local function applyBypassESP(player)
         label.Parent = bGui
         bGui.Parent = char
 
-        -- Поток обновления дистанции
         task.spawn(function()
             while char and char.Parent and bGui and bGui.Parent do
                 if states.ESP and char:FindFirstChild("HumanoidRootPart") then
@@ -381,11 +382,10 @@ local function applyBypassESP(player)
     player.CharacterAdded:Connect(setupChar)
 end
 
--- Инициализируем ESP для всех
 for _, p in pairs(Players:GetPlayers()) do applyBypassESP(p) end
 Players.PlayerAdded:Connect(applyBypassESP)
 
--- [[ БЕЗОПАСНЫЙ ЦИКЛ АИМБОТА ]]
+-- [[ ПОИСК ЦЕЛИ ДЛЯ АИМА ]]
 local function getClosestPlayerToCenter()
     local closestTarget, shortestDistance = nil, states.Aim_FOV
     local centerScreen = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
@@ -410,29 +410,51 @@ local function getClosestPlayerToCenter()
     return closestTarget
 end
 
+-- [[ ЦИКЛ АИМБОТА (СИМУЛЯЦИЯ МЫШИ) ]]
 RunService.RenderStepped:Connect(function()
     if states.Aimbot then
         local target = getClosestPlayerToCenter()
         if target then
-            -- Плавный легитный обход трекинга углов
-            local targetCFrame = CFrame.new(Camera.CFrame.Position, target.Position)
-            Camera.CFrame = Camera.CFrame:Lerp(targetCFrame, Smoothness)
+            local screenPos, onScreen = Camera:WorldToViewportPoint(target.Position)
+            if onScreen then
+                local centerScreen = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+                local mouseMoveX = (screenPos.X - centerScreen.X) * Smoothness
+                local mouseMoveY = (screenPos.Y - centerScreen.Y) * Smoothness
+                
+                if mousemoverel then
+                    mousemoverel(mouseMoveX, mouseMoveY)
+                else
+                    local currentCFrame = Camera.CFrame
+                    local targetCFrame = CFrame.new(currentCFrame.Position, target.Position)
+                    Camera.CFrame = currentCFrame:Lerp(targetCFrame, Smoothness)
+                end
+            end
         end
     end
 end)
 
--- [[ FLY И ДРУГИЕ СТАНДАРТНЫЕ СЛУЖБЫ ]]
+-- [[ ЛОГИКА ФЛАЯ С НАСТРОЙКОЙ СКОРОСТИ ]]
 local FlyBV, FlyBG
 RunService.RenderStepped:Connect(function()
     pcall(function()
         local char = LocalPlayer.Character
         local root = char and char:FindFirstChild("HumanoidRootPart")
         local hum = char and char:FindFirstChildOfClass("Humanoid")
+        
         if states.Fly and root and hum then
-            if not FlyBV or FlyBV.Parent ~= root then FlyBV = Instance.new("BodyVelocity", root) FlyBV.MaxForce = Vector3.new(math.huge, math.huge, math.huge) end
-            if not FlyBG or FlyBG.Parent ~= root then FlyBG = Instance.new("BodyGyro", root) FlyBG.P = 9e4 FlyBG.MaxTorque = Vector3.new(math.huge, math.huge, math.huge) end
+            if not FlyBV or FlyBV.Parent ~= root then 
+                FlyBV = Instance.new("BodyVelocity", root) 
+                FlyBV.MaxForce = Vector3.new(math.huge, math.huge, math.huge) 
+            end
+            if not FlyBG or FlyBG.Parent ~= root then 
+                FlyBG = Instance.new("BodyGyro", root) 
+                FlyBG.P = 9e4 
+                FlyBG.MaxTorque = Vector3.new(math.huge, math.huge, math.huge) 
+            end
+            
             FlyBG.CFrame = Camera.CFrame
             local moveDir = hum.MoveDirection
+            
             if moveDir.Magnitude > 0 then
                 local lookVector = Camera.CFrame.LookVector
                 local rightVector = Camera.CFrame.RightVector
@@ -449,46 +471,39 @@ RunService.RenderStepped:Connect(function()
     end)
 end)
 
--- Скорость ходьбы
+-- [[ ЛОГИКА ЖЕСТКОГО ОТТАЛКИВАНИЯ (PUSH / FLING) ]]
 RunService.Heartbeat:Connect(function()
-    pcall(function()
-        local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-        if hum then hum.WalkSpeed = states.SpeedToggle and states.WalkSpeedVal or 16 end
-    end)
-end)
-
--- Локальная невидимость
-local function setInvis(state)
-    pcall(function()
-        local char = LocalPlayer.Character
-        if not char then return end
-        for _, part in pairs(char:GetDescendants()) do
-            if part:IsA("BasePart") or part:IsA("Decal") then 
-                if part.Name ~= "HumanoidRootPart" then part.Transparency = state and 1 or 0 end 
-            end
-        end
-    end)
-end
-
--- Создание кнопок меню
-createToggle("Режим полета (Fly)", false, function(active) updateQuickFlyVisual(active) end)
-createToggle("Невидимость (Локально)", false, function(s) states.Invis = s setInvis(s) end)
-createToggle("Мега Скорость бега", false, function(s) states.SpeedToggle = s end)
-createToggle("Включить Box ESP (Враги)", false, function(s) states.ESP = s end)
-createToggle("Включить Аимбот", false, function(active) updateQuickAimVisual(active) end)
-createSlider("Радиус Аима (Aim FOV)", 30, 500, 150, function(v) states.Aim_FOV = v end)
-
--- Проверка ключа
-CheckKeyBtn.MouseButton1Click:Connect(function()
-    if KeyInput.Text == CORRECT_KEY then
-        KeyFrame:Destroy()
-        MainPanel.Visible = true
-        ToggleMenuBtn.Visible = true
-        QuickAimBtn.Visible = true
-        QuickFlyBtn.Visible = true
-    else
-        KeyInput.Text = ""
-        KeyInput.PlaceholderText = "НЕВЕРНЫЙ КЛЮЧ!"
-        KeyInput.PlaceholderColor3 = Color3.fromRGB(255, 50, 50)
-    end
-end)
+    if not states.PushToggle then return end
+    
+    local myChar = LocalPlayer.Character
+    local myRoot = myChar and myChar:FindFirstChild("HumanoidRootPart")
+    if not myRoot then return end
+    
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and not checkIsTeammate(player) then
+            local enemyRoot = player.Character:FindFirstChild("HumanoidRootPart")
+            local enemyHum = player.Character:FindFirstChildOfClass("Humanoid")
+            
+            if enemyRoot and enemyHum and enemyHum.Health > 0 then
+                local distance = (enemyRoot.Position - myRoot.Position).Magnitude
+                
+                -- Если враг ближе установленной дистанции
+                if distance <= states.PushDist then
+                    pcall(function()
+                        local direction = (enemyRoot.Position - myRoot.Position).Unit
+                        local pushVelocity = (direction * 160) + Vector3.new(0, 90, 0) -- Направление отталкивания
+                        
+                        -- Линейный импульс
+                        local bv = Instance.new("BodyVelocity")
+                        bv.MaxForce = Vector3.new(1e7, 1e7, 1e7)
+                        bv.Velocity = pushVelocity
+                        bv.Parent = enemyRoot
+                        
+                        -- Угловой импульс (раскрутка)
+                        local ba = Instance.new("BodyAngularVelocity")
+                        ba.MaxTorque = Vector3.new(1e7, 1e7, 1e7)
+                        ba.AngularVelocity = Vector3.new(0, 6000, 0)
+                        ba.Parent = enemyRoot
+                        
+                        -- Очищаем элементы физики, чтобы запустить импульс
+                        task.
