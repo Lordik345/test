@@ -1,229 +1,286 @@
--- [[ БИБЛИОТЕКА ИНТЕРФЕЙСА И НАСТРОЙКИ ]]
+_G.CorrectKey = "DELTA_MEGA_2026" -- Твой ключ доступа
+
 local CoreGui = game:GetService("CoreGui")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
--- Переменные состояний
-local _G = {
-    FlyEnabled = false,
-    ESPEnabled = false,
-    InvisEnabled = false,
-    FlySpeed = 50
+local states = { 
+    Fly = false, 
+    ESP = false, 
+    Invis = false, 
+    SpeedToggle = false,
+    PushPlayers = false,
+    FlySpeed = 50,
+    WalkSpeedVal = 100
 }
 
--- Удаление старого меню, если скрипт перезапускается
-if CoreGui:FindFirstChild("DeltaCustomMenu") then
-    CoreGui.DeltaCustomMenu:Destroy()
-end
+if CoreGui:FindFirstChild("DeltaMegaMenu") then CoreGui.DeltaMegaMenu:Destroy() end
 
--- [[ СОЗДАНИЕ КРАСИВОГО GUI ]]
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "DeltaCustomMenu"
+ScreenGui.Name = "DeltaMegaMenu"
 ScreenGui.Parent = CoreGui
 ScreenGui.ResetOnSpawn = false
 
--- Кнопка Скрыть/Показать меню (для мобилок)
-local ToggleMenuBtn = Instance.new("TextButton")
-ToggleMenuBtn.Size = UDim2.new(0, 80, 0, 35)
-ToggleMenuBtn.Position = UDim2.new(0.05, 0, 0.1, 0)
-ToggleMenuBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
-ToggleMenuBtn.TextColor3 = Color3.fromRGB(180, 100, 255)
-ToggleMenuBtn.TextSize = 14
-ToggleMenuBtn.Font = Enum.Font.SourceSansBold
-ToggleMenuBtn.Text = "MENU"
-ToggleMenuBtn.Parent = ScreenGui
+local function styleElement(element, radius, strokeColor)
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, radius)
+    corner.Parent = element
+    if strokeColor then
+        local stroke = Instance.new("UIStroke")
+        stroke.Color = strokeColor
+        stroke.Thickness = 1.5
+        stroke.Parent = element
+    end
+end
 
-local UICornerBtn = Instance.new("UICorner")
-UICornerBtn.CornerRadius = UDim.new(0, 8)
-UICornerBtn.Parent = ToggleMenuBtn
+-- [[ 1. ОКНО СИСТЕМЫ КЛЮЧА ]]
+local KeyFrame = Instance.new("Frame")
+KeyFrame.Size = UDim2.new(0, 300, 0, 180)
+KeyFrame.Position = UDim2.new(0.5, -150, 0.4, -90)
+KeyFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+styleElement(KeyFrame, 12, Color3.fromRGB(255, 0, 100)) -- Ярко-розовый неон
+KeyFrame.Parent = ScreenGui
 
--- Главная панель меню
+local KeyTitle = Instance.new("TextLabel")
+KeyTitle.Size = UDim2.new(1, 0, 0, 40)
+KeyTitle.BackgroundTransparency = 1
+KeyTitle.Text = "ENTER PREMIUM KEY"
+KeyTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+KeyTitle.TextSize = 16
+KeyTitle.Font = Enum.Font.GothamBold
+KeyTitle.Parent = KeyFrame
+
+local KeyInput = Instance.new("TextBox")
+KeyInput.Size = UDim2.new(0, 240, 0, 35)
+KeyInput.Position = UDim2.new(0.5, -120, 0, 55)
+KeyInput.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+KeyInput.Text = ""
+KeyInput.PlaceholderText = "Вставь ключ сюда..."
+KeyInput.PlaceholderColor3 = Color3.fromRGB(100, 100, 110)
+KeyInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+KeyInput.TextSize = 14
+KeyInput.Font = Enum.Font.Gotham
+styleElement(KeyInput, 8, Color3.fromRGB(50, 50, 60))
+KeyInput.Parent = KeyFrame
+
+local CheckKeyBtn = Instance.new("TextButton")
+CheckKeyBtn.Size = UDim2.new(0, 140, 0, 35)
+CheckKeyBtn.Position = UDim2.new(0.5, -70, 0, 110)
+CheckKeyBtn.BackgroundColor3 = Color3.fromRGB(255, 0, 100)
+CheckKeyBtn.Text = "Вход"
+CheckKeyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+CheckKeyBtn.TextSize = 14
+CheckKeyBtn.Font = Enum.Font.GothamBold
+styleElement(CheckKeyBtn, 8)
+CheckKeyBtn.Parent = KeyFrame
+
+-- [[ 2. ГЛАВНОЕ МЕНЮ ФУНКЦИЙ ]]
 local MainPanel = Instance.new("Frame")
-MainPanel.Size = UDim2.new(0, 320, 0, 260)
-MainPanel.Position = UDim2.new(0.35, 0, 0.25, 0)
-MainPanel.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
-MainPanel.BorderSizePixel = 0
+MainPanel.Size = UDim2.new(0, 330, 0, 360) -- Увеличили размер под новые кнопки
+MainPanel.Position = UDim2.new(0.5, -165, 0.25, -180)
+MainPanel.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
+MainPanel.Visible = false
 MainPanel.Active = true
-MainPanel.Draggable = true -- Можно перетаскивать пальцем по экрану
+MainPanel.Draggable = true
+styleElement(MainPanel, 14, Color3.fromRGB(255, 0, 100))
 MainPanel.Parent = ScreenGui
 
-local MainCorner = Instance.new("UICorner")
-MainCorner.CornerRadius = UDim.new(0, 12)
-MainCorner.Parent = MainPanel
+local MainTitle = Instance.new("TextLabel")
+MainTitle.Size = UDim2.new(1, 0, 0, 45)
+MainTitle.BackgroundTransparency = 1
+MainTitle.Text = "DELTA DELUXE MENU"
+MainTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+MainTitle.TextSize = 18
+MainTitle.Font = Enum.Font.GothamBold
+MainTitle.Parent = MainPanel
 
-local MainStroke = Instance.new("UIStroke")
-MainStroke.Color = Color3.fromRGB(140, 60, 255) -- Фиолетовое неоновое свечение
-MainStroke.Thickness = 2
-MainStroke.Parent = MainPanel
+local ToggleMenuBtn = Instance.new("TextButton")
+ToggleMenuBtn.Size = UDim2.new(0, 90, 0, 35)
+ToggleMenuBtn.Position = UDim2.new(0.05, 0, 0.05, 0)
+ToggleMenuBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+ToggleMenuBtn.TextColor3 = Color3.fromRGB(255, 0, 100)
+ToggleMenuBtn.TextSize = 14
+ToggleMenuBtn.Font = Enum.Font.SourceSansBold
+ToggleMenuBtn.Text = "OPEN MENU"
+ToggleMenuBtn.Visible = false
+styleElement(ToggleMenuBtn, 8, Color3.fromRGB(255, 0, 100))
+ToggleMenuBtn.Parent = ScreenGui
 
--- Заголовок меню
-local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(1, 0, 0, 45)
-Title.BackgroundTransparency = 1
-Title.Text = "DELTA CHEATS v1.0"
-Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.TextSize = 18
-Title.Font = Enum.Font.GothamBold
-Title.Parent = MainPanel
-
--- Логика кнопки Скрыть/Показать
 ToggleMenuBtn.MouseButton1Click:Connect(function()
     MainPanel.Visible = not MainPanel.Visible
 end)
 
--- [[ ФУНКЦИЯ ДЛЯ СОЗДАНИЯ КРАСИВЫХ КНОПОК-ПЕРЕКЛЮЧАТЕЛЕЙ (TOGGLES) ]]
-local buttonY = 55
+-- [[ КОНСТРУКТОР ТУМБЛЕРОВ ]]
+local buttonY = 50
 local function createToggle(name, callback)
     local Frame = Instance.new("Frame")
-    Frame.Size = UDim2.new(0, 280, 0, 45)
+    Frame.Size = UDim2.new(0, 290, 0, 45)
     Frame.Position = UDim2.new(0, 20, 0, buttonY)
-    Frame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+    Frame.BackgroundColor3 = Color3.fromRGB(24, 24, 28)
+    styleElement(Frame, 8)
     Frame.Parent = MainPanel
     
-    local FrameCorner = Instance.new("UICorner")
-    FrameCorner.CornerRadius = UDim.new(0, 8)
-    FrameCorner.Parent = Frame
-
     local Text = Instance.new("TextLabel")
     Text.Size = UDim2.new(0.7, 0, 1, 0)
     Text.Position = UDim2.new(0, 15, 0, 0)
     Text.BackgroundTransparency = 1
     Text.Text = name
-    Text.TextColor3 = Color3.fromRGB(200, 200, 200)
-    Text.TextSize = 15
+    Text.TextColor3 = Color3.fromRGB(230, 230, 230)
+    Text.TextSize = 14
     Text.Font = Enum.Font.Gotham
     Text.TextXAlignment = Enum.TextXAlignment.Left
     Text.Parent = Frame
 
     local ToggleBtn = Instance.new("TextButton")
-    ToggleBtn.Size = UDim2.new(0, 50, 0, 25)
-    ToggleBtn.Position = UDim2.new(0.8, 0, 0.22, 0)
-    ToggleBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+    ToggleBtn.Size = UDim2.new(0, 50, 0, 24)
+    ToggleBtn.Position = UDim2.new(0.8, 0, 0.23, 0)
+    ToggleBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
     ToggleBtn.Text = ""
+    styleElement(ToggleBtn, 12)
     ToggleBtn.Parent = Frame
 
-    local ToggleCorner = Instance.new("UICorner")
-    ToggleCorner.CornerRadius = UDim.new(0, 12)
-    ToggleCorner.Parent = ToggleBtn
-
-    local state = false
+    local active = false
     ToggleBtn.MouseButton1Click:Connect(function()
-        state = not state
-        if state then
-            ToggleBtn.BackgroundColor3 = Color3.fromRGB(140, 60, 255) -- Включен (Фиолетовый)
-        else
-            ToggleBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 70)  -- Выключен (Серый)
-        end
-        callback(state)
+        active = not active
+        ToggleBtn.BackgroundColor3 = active and Color3.fromRGB(255, 0, 100) or Color3.fromRGB(50, 50, 60)
+        callback(active)
     end)
 
-    buttonY = buttonY + 55
+    buttonY = buttonY + 52
 end
 
+-- [[ ЛОГИКА ФУНКЦИЙ ЧИТА ]]
 
--- [[ СИСТЕМА ФУНКЦИЙ (ЛОГИКА ЧИТОВ) ]]
-
--- 1. ПОЛЕТ (Fly)
+-- 1. Полет (Fly)
 local BodyVelocity, BodyGyro
 RunService.RenderStepped:Connect(function()
     local char = LocalPlayer.Character
     local root = char and char:FindFirstChild("HumanoidRootPart")
     local hum = char and char:FindFirstChildOfClass("Humanoid")
 
-    if _G.FlyEnabled and root and hum then
+    if states.Fly and root and hum then
         if not BodyVelocity or BodyVelocity.Parent ~= root then
-            BodyVelocity = Instance.new("BodyVelocity")
+            BodyVelocity = Instance.new("BodyVelocity", root)
             BodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-            BodyVelocity.Parent = root
         end
         if not BodyGyro or BodyGyro.Parent ~= root then
-            BodyGyro = Instance.new("BodyGyro")
+            BodyGyro = Instance.new("BodyGyro", root)
             BodyGyro.P = 9e4
             BodyGyro.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
-            BodyGyro.Parent = root
         end
-
-        BodyVelocity.Velocity = hum.MoveDirection * _G.FlySpeed
+        BodyVelocity.Velocity = hum.MoveDirection * states.FlySpeed
         BodyGyro.CFrame = Camera.CFrame
-
-        if hum.MoveDirection.Magnitude == 0 then
-            BodyVelocity.Velocity = Vector3.new(0, 0.1, 0)
-        end
+        if hum.MoveDirection.Magnitude == 0 then BodyVelocity.Velocity = Vector3.new(0, 0.1, 0) end
     else
         if BodyVelocity then BodyVelocity:Destroy() BodyVelocity = nil end
         if BodyGyro then BodyGyro:Destroy() BodyGyro = nil end
     end
 end)
 
--- 2. НЕВИДИМОСТЬ (Invisibility)
-local function updateInvis(state)
+-- 2. Невидимость (Invisibility)
+local function setInvis(state)
     local char = LocalPlayer.Character
     if not char then return end
     for _, part in pairs(char:GetDescendants()) do
         if part:IsA("BasePart") or part:IsA("Decal") then
-            if part.Name ~= "HumanoidRootPart" then
-                part.Transparency = state and 1 or 0
-            end
+            if part.Name ~= "HumanoidRootPart" then part.Transparency = state and 1 or 0 end
         end
     end
 end
-LocalPlayer.CharacterAdded:Connect(function()
-    task.wait(0.5)
-    if _G.InvisEnabled then updateInvis(true) end
-end)
 
 -- 3. ESP (Подсветка игроков)
 local function applyESP(player)
     if player == LocalPlayer then return end
-    
     local function addHighlight(character)
         task.wait(0.2)
-        if _G.ESPEnabled and not character:FindFirstChild("MenuESP") then
-            local highlight = Instance.new("Highlight")
-            highlight.Name = "MenuESP"
-            highlight.FillColor = Color3.fromRGB(140, 60, 255) -- В цвет меню
-            highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
-            highlight.FillTransparency = 0.4
-            highlight.Adornee = character
-            highlight.Parent = character
+        if states.ESP and not character:FindFirstChild("Mega_ESP") then
+            local hl = Instance.new("Highlight", character)
+            hl.Name = "Mega_ESP"
+            hl.FillColor = Color3.fromRGB(255, 0, 100)
+            hl.OutlineColor = Color3.fromRGB(255, 255, 255)
+            hl.FillTransparency = 0.4
         end
     end
-
     if player.Character then addHighlight(player.Character) end
     player.CharacterAdded:Connect(addHighlight)
 end
 
--- Обновление ESP при включении/выключении тумблера
 local function toggleESP(state)
-    _G.ESPEnabled = state
-    for _, player in pairs(Players:GetPlayers()) do
-        if player.Character then
-            local oldESP = player.Character:FindFirstChild("MenuESP")
-            if oldESP then oldESP:Destroy() end
-            
-            if state then
-                applyESP(player)
-            end
+    states.ESP = state
+    for _, p in pairs(Players:GetPlayers()) do
+        if p.Character then
+            local old = p.Character:FindFirstChild("Mega_ESP")
+            if old then old:Destroy() end
+            if state then applyESP(p) end
         end
     end
 end
-
 Players.PlayerAdded:Connect(applyESP)
 
-
--- [[ ИНИЦИАЛИЗАЦИЯ ТУМБЛЕРОВ В МЕНЮ ]]
-
-createToggle("Включить Полет (Fly)", function(state)
-    _G.FlyEnabled = state
+-- 4. Скорость бега (Speed)
+RunService.Heartbeat:Connect(function()
+    local char = LocalPlayer.Character
+    local hum = char and char:FindFirstChildOfClass("Humanoid")
+    if states.SpeedToggle and hum then
+        hum.WalkSpeed = states.WalkSpeedVal
+    elseif hum and not states.SpeedToggle then
+        if hum.WalkSpeed == states.WalkSpeedVal then hum.WalkSpeed = 16 end
+    end
 end)
 
-createToggle("Невидимость (Локально)", function(state)
-    _G.InvisEnabled = state
-    updateInvis(state)
+-- 5. Отталкивание игроков (Fling / Push)
+local BAMV = Instance.new("BodyAngularVelocity")
+BAMV.AngularVelocity = Vector3.new(0, 99999, 0) -- Бешеная скорость вращения хитбокса
+BAMV.MaxTorque = Vector3.new(0, math.huge, 0)
+BAMV.Name = "PushForce"
+
+RunService.Heartbeat:Connect(function()
+    if states.PushPlayers then
+        local char = LocalPlayer.Character
+        local root = char and char:FindFirstChild("HumanoidRootPart")
+        if root then
+            if not root:FindFirstChild("PushForce") then
+                BAMV.Parent = root
+            end
+            -- Делаем хитбокс неосязаемым для падений, но жестким для врагов
+            root.Velocity = Vector3.new(root.Velocity.X, 0, root.Velocity.Z) 
+        end
+    else
+        local char = LocalPlayer.Character
+        local root = char and char:FindFirstChild("HumanoidRootPart")
+        if root and root:FindFirstChild("PushForce") then
+            root.PushForce:Destroy()
+        end
+    end
 end)
 
-createToggle("Подсветка игроков (ESP)", function(state)
-    toggleESP(state)
+-- [[ ИНИЦИАЛИЗАЦИЯ КНОПОК В МЕНЮ ]]
+createToggle("Режим полета (Fly)", function(s) states.Fly = s end)
+createToggle("Невидимость (Локально)", function(s) states.Invis = s setInvis(s) end)
+createToggle("Включить ESP (Подсветка)", function(s) toggleESP(s) end)
+createToggle("Мега Скорость бега", function(s) states.SpeedToggle = s end)
+createToggle("Отталкивать игроков (Fling)", function(s) states.PushPlayers = s end)
+
+LocalPlayer.CharacterAdded:Connect(function()
+    task.wait(0.5)
+    if states.Invis then setInvis(true) end
 end)
+
+-- [[ ПРОВЕРКА КЛЮЧА ]]
+CheckKeyBtn.MouseButton1Click:Connect(function()
+    if KeyInput.Text == _G.CorrectKey then
+        KeyFrame:Destroy()
+        MainPanel.Visible = true
+        ToggleMenuBtn.Visible = true
+    else
+        KeyInput.Text = ""
+        KeyInput.PlaceholderText = "НЕВЕРНЫЙ КЛЮЧ!"
+        KeyInput.PlaceholderColor3 = Color3.fromRGB(255, 50, 50)
+        task.wait(1.5)
+        KeyInput.PlaceholderText = "Вставь ключ сюда..."
+        KeyInput.PlaceholderColor3 = Color3.fromRGB(100, 100, 110)
+    end
+end)
+
