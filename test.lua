@@ -13,14 +13,12 @@ local Smoothness = 0.15
 local AimPart = "Head"
 
 local states = { 
-    Fly = false, FlySpeed = 60,
+    Fly = false, FlySpeed = 60, FlyNoclip = false, -- Новая настройка для стен
     Invis = false, 
     SpeedToggle = false, WalkSpeedVal = 100,
     ESP = false,
     Aimbot = false,
-    Aim_FOV = 150,
-    PushToggle = false, -- Включение отталкивания
-    PushDist = 15       -- Дистанция для триггера отталкивания
+    Aim_FOV = 150
 }
 
 local menuToggles = {}
@@ -110,7 +108,7 @@ local ScrollContainer = Instance.new("ScrollingFrame")
 ScrollContainer.Size = UDim2.new(1, 0, 1, -50)
 ScrollContainer.Position = UDim2.new(0, 0, 0, 45)
 ScrollContainer.BackgroundTransparency = 1
-ScrollContainer.CanvasSize = UDim2.new(0, 0, 0, 650)
+ScrollContainer.CanvasSize = UDim2.new(0, 0, 0, 580) -- Увеличено под новую настройку
 ScrollContainer.ScrollBarThickness = 4
 ScrollContainer.Parent = MainPanel
 
@@ -315,10 +313,9 @@ end
 createToggle("Включить Аимбот", states.Aimbot, function(val) states.Aimbot = val end)
 createSlider("Радиус Аима (FOV)", 10, 500, states.Aim_FOV, function(val) states.Aim_FOV = val end)
 createToggle("Режим полета (Fly)", states.Fly, function(val) states.Fly = val end)
+createToggle("Полет сквозь стены (Noclip)", states.FlyNoclip, function(val) states.FlyNoclip = val end) -- Добавлено в меню
 createSlider("Скорость полета", 10, 200, states.FlySpeed, function(val) states.FlySpeed = val end)
 createToggle("Включить ESP (Подсветка)", states.ESP, function(val) states.ESP = val end)
-createToggle("Авто-Отталкивание", states.PushToggle, function(val) states.PushToggle = val end)
-createSlider("Дистанция триггера", 5, 50, states.PushDist, function(val) states.PushDist = val end)
 
 -- [[ ЛОГИКА КЛЮЧА ]]
 CheckKeyBtn.MouseButton1Click:Connect(function()
@@ -443,7 +440,7 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- [[ ЛОГИКА ФЛАЯ С НАСТРОЙКОЙ СКОРОСТИ ]]
+-- [[ ЛОГИКА ФЛАЯ С НАСТРОЙКОЙ СКОРОСТИ И NOCLIP ]]
 local FlyBV, FlyBG
 RunService.RenderStepped:Connect(function()
     pcall(function()
@@ -474,35 +471,18 @@ RunService.RenderStepped:Connect(function()
             else
                 FlyBV.Velocity = Vector3.new(0, 0, 0)
             end
+            
+            -- Логика прохождения сквозь стены (Noclip)
+            if states.FlyNoclip then
+                for _, part in pairs(char:GetDescendants()) do
+                    if part:IsA("BasePart") and part.CanCollide then
+                        part.CanCollide = false
+                    end
+                end
+            end
         else
             if FlyBV then FlyBV:Destroy() FlyBV = nil end
             if FlyBG then FlyBG:Destroy() FlyBG = nil end
         end
     end)
 end)
-
--- [[ ЛОГИКА АВТО-ОТТАЛКИВАНИЯ (ПОДХОДИШЬ -> ОТТАЛКИВАЕТ) ]]
-RunService.Heartbeat:Connect(function()
-    if not states.PushToggle then return end
-    
-    local myChar = LocalPlayer.Character
-    local myRoot = myChar and myChar:FindFirstChild("HumanoidRootPart")
-    if not myRoot then return end
-    
-    for _, player in pairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character and not checkIsTeammate(player) then
-            local enemyRoot = player.Character:FindFirstChild("HumanoidRootPart")
-            local enemyHum = player.Character:FindFirstChildOfClass("Humanoid")
-            
-            if enemyRoot and enemyHum and enemyHum.Health > 0 then
-                local distance = (enemyRoot.Position - myRoot.Position).Magnitude
-                
-                -- Если враг ближе установленной дистанции
-                if distance <= states.PushDist then
-                    pcall(function()
-                        local direction = (enemyRoot.Position - myRoot.Position).Unit
-                        local pushVelocity = (direction * 180) + Vector3.new(0, 100, 0) -- Направление отталкивания
-                        
-                        -- Создаем импульс движения
-                        local bv = Instance.new("BodyVelocity")
-                     
