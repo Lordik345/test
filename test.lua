@@ -4,24 +4,18 @@ local CoreGui = game:GetService("CoreGui")
 local Players = game:GetService("Players")
 local Teams = game:GetService("Teams")
 local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
-local Mouse = LocalPlayer:GetMouse()
 
 local states = { 
-    Fly = false, FlySpeed = 60, -- Оптимальная скорость для управления джойстиком
+    Fly = false, FlySpeed = 60,
     Invis = false, 
     SpeedToggle = false, WalkSpeedVal = 100,
     PushPlayers = false,
-    
-    -- Настройки ESP
     ESP = false,
-    ESP_OnlyEnemies = true,
-    
-    -- Настройки Аима
     Aimbot = false,
-    Aim_WallCheck = true,
-    Aim_FOV = 150
+    Aim_FOV = 150 -- Дефолтный радиус центрального круга аима
 }
 
 if CoreGui:FindFirstChild("DeltaMegaMenu") then CoreGui.DeltaMegaMenu:Destroy() end
@@ -31,7 +25,7 @@ ScreenGui.Name = "DeltaMegaMenu"
 ScreenGui.Parent = CoreGui
 ScreenGui.ResetOnSpawn = false
 
--- Создание круга FOV для Аима
+-- Создание фиксированного круга FOV строго по центру экрана
 local FOVCircle = Drawing.new("Circle")
 FOVCircle.Color = Color3.fromRGB(255, 0, 100)
 FOVCircle.Thickness = 1.5
@@ -72,7 +66,8 @@ KeyTitle.Parent = KeyFrame
 local KeyInput = Instance.new("TextBox")
 KeyInput.Size = UDim2.new(0, 240, 0, 35)
 KeyInput.Position = UDim2.new(0.5, -120, 0, 55)
-KeyInput.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+KeyInput.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+KeyInput.BackgroundTransparency = 0.95
 KeyInput.Text = ""
 KeyInput.PlaceholderText = "Вставь ключ сюда..."
 KeyInput.PlaceholderColor3 = Color3.fromRGB(100, 100, 110)
@@ -95,8 +90,8 @@ CheckKeyBtn.Parent = KeyFrame
 
 -- [[ 2. ГЛАВНОЕ МЕНЮ ФУНКЦИЙ ]]
 local MainPanel = Instance.new("Frame")
-MainPanel.Size = UDim2.new(0, 350, 0, 480)
-MainPanel.Position = UDim2.new(0.5, -175, 0.2, -240)
+MainPanel.Size = UDim2.new(0, 340, 0, 420)
+MainPanel.Position = UDim2.new(0.5, -170, 0.25, -210)
 MainPanel.BackgroundColor3 = Color3.fromRGB(12, 12, 15)
 MainPanel.Visible = false
 MainPanel.Active = true
@@ -105,19 +100,19 @@ styleElement(MainPanel, 14, Color3.fromRGB(255, 0, 100))
 MainPanel.Parent = ScreenGui
 
 local MainTitle = Instance.new("TextLabel")
-MainTitle.Size = UDim2.new(1, 0, 0, 40)
+MainTitle.Size = UDim2.new(1, 0, 0, 45)
 MainTitle.BackgroundTransparency = 1
-MainTitle.Text = "LORD HUB VIP v2.5"
+MainTitle.Text = "LORD HUB VIP v3.5"
 MainTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
 MainTitle.TextSize = 16
 MainTitle.Font = Enum.Font.GothamBold
 MainTitle.Parent = MainPanel
 
 local ScrollContainer = Instance.new("ScrollingFrame")
-ScrollContainer.Size = UDim2.new(1, 0, 1, -45)
-ScrollContainer.Position = UDim2.new(0, 0, 0, 40)
+ScrollContainer.Size = UDim2.new(1, 0, 1, -50)
+ScrollContainer.Position = UDim2.new(0, 0, 0, 45)
 ScrollContainer.BackgroundTransparency = 1
-ScrollContainer.CanvasSize = UDim2.new(0, 0, 0, 520)
+ScrollContainer.CanvasSize = UDim2.new(0, 0, 0, 420)
 ScrollContainer.ScrollBarThickness = 4
 ScrollContainer.Parent = MainPanel
 
@@ -137,11 +132,12 @@ ToggleMenuBtn.MouseButton1Click:Connect(function()
     MainPanel.Visible = not MainPanel.Visible
 end)
 
--- [[ КОНСТРУКТОР ТУМБЛЕРОВ ]]
+-- [[ КОНСТРУКТОРЫ ДЛЯ МЕНЮ ]]
 local buttonY = 10
+
 local function createToggle(name, default, callback)
     local Frame = Instance.new("Frame")
-    Frame.Size = UDim2.new(0, 310, 0, 40)
+    Frame.Size = UDim2.new(0, 300, 0, 40)
     Frame.Position = UDim2.new(0, 15, 0, buttonY)
     Frame.BackgroundColor3 = Color3.fromRGB(20, 20, 24)
     styleElement(Frame, 8)
@@ -176,6 +172,88 @@ local function createToggle(name, default, callback)
     buttonY = buttonY + 48
 end
 
+local function createSlider(name, min, max, default, callback)
+    local Frame = Instance.new("Frame")
+    Frame.Size = UDim2.new(0, 300, 0, 55)
+    Frame.Position = UDim2.new(0, 15, 0, buttonY)
+    Frame.BackgroundColor3 = Color3.fromRGB(20, 20, 24)
+    styleElement(Frame, 8)
+    Frame.Parent = ScrollContainer
+
+    local Text = Instance.new("TextLabel")
+    Text.Size = UDim2.new(0.7, 0, 0, 25)
+    Text.Position = UDim2.new(0, 12, 0, 2)
+    Text.BackgroundTransparency = 1
+    Text.Text = name
+    Text.TextColor3 = Color3.fromRGB(220, 220, 220)
+    Text.TextSize = 13
+    Text.Font = Enum.Font.Gotham
+    Text.TextXAlignment = Enum.TextXAlignment.Left
+    Text.Parent = Frame
+
+    local ValueLabel = Instance.new("TextLabel")
+    ValueLabel.Size = UDim2.new(0.25, 0, 0, 25)
+    ValueLabel.Position = UDim2.new(0.7, 0, 0, 2)
+    ValueLabel.BackgroundTransparency = 1
+    ValueLabel.Text = tostring(default)
+    ValueLabel.TextColor3 = Color3.fromRGB(255, 0, 100)
+    ValueLabel.TextSize = 13
+    ValueLabel.Font = Enum.Font.GothamBold
+    ValueLabel.TextXAlignment = Enum.TextXAlignment.Right
+    ValueLabel.Parent = Frame
+
+    local SliderTrack = Instance.new("Frame")
+    SliderTrack.Size = UDim2.new(0, 276, 0, 6)
+    SliderTrack.Position = UDim2.new(0, 12, 0, 35)
+    SliderTrack.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+    styleElement(SliderTrack, 3)
+    SliderTrack.Parent = Frame
+
+    local SliderFill = Instance.new("Frame")
+    SliderFill.Size = UDim2.new((default - min) / (max - min), 0, 1, 0)
+    SliderFill.BackgroundColor3 = Color3.fromRGB(255, 0, 100)
+    styleElement(SliderFill, 3)
+    SliderFill.Parent = SliderTrack
+
+    local SliderButton = Instance.new("TextButton")
+    SliderButton.Size = UDim2.new(0, 14, 0, 14)
+    SliderButton.Position = UDim2.new((default - min) / (max - min), -7, 0.5, -7)
+    SliderButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    SliderButton.Text = ""
+    styleElement(SliderButton, 7, Color3.fromRGB(255, 0, 100))
+    SliderButton.Parent = SliderTrack
+
+    local dragging = false
+    local function updateSlider(input)
+        local deltaX = math.clamp((input.Position.X - SliderTrack.AbsolutePosition.X) / SliderTrack.AbsoluteSize.X, 0, 1)
+        local value = math.floor(min + (deltaX * (max - min)))
+        SliderFill.Size = UDim2.new(deltaX, 0, 1, 0)
+        SliderButton.Position = UDim2.new(deltaX, -7, 0.5, -7)
+        ValueLabel.Text = tostring(value)
+        callback(value)
+    end
+
+    SliderButton.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+        end
+    end)
+
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = false
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            updateSlider(input)
+        end
+    end)
+
+    buttonY = buttonY + 63
+end
+
 -- [[ ЛОГИКА ФУНКЦИЙ ЧИТА ]]
 
 -- 1. УМНЫЙ ПОЛЕТ (Fly под камеру и джойстик)
@@ -186,40 +264,22 @@ RunService.RenderStepped:Connect(function()
     local hum = char and char:FindFirstChildOfClass("Humanoid")
     
     if states.Fly and root and hum then
-        -- Если объекты полета не созданы — создаем их
-        if not FlyBV or FlyBV.Parent ~= root then
-            FlyBV = Instance.new("BodyVelocity", root)
-            FlyBV.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-        end
-        if not FlyBG or FlyBG.Parent ~= root then
-            FlyBG = Instance.new("BodyGyro", root)
-            FlyBG.P = 9e4
-            FlyBG.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
-        end
+        if not FlyBV or FlyBV.Parent ~= root then FlyBV = Instance.new("BodyVelocity", root) FlyBV.MaxForce = Vector3.new(math.huge, math.huge, math.huge) end
+        if not FlyBG or FlyBG.Parent ~= root then FlyBG = Instance.new("BodyGyro", root) FlyBG.P = 9e4 FlyBG.MaxTorque = Vector3.new(math.huge, math.huge, math.huge) end
         
-        -- Удерживаем вращение персонажа вслед за взглядом камеры
         FlyBG.CFrame = Camera.CFrame
-        
-        -- Рассчитываем вектор движения на основе наклона камеры и джойстика
         local moveDir = hum.MoveDirection
         if moveDir.Magnitude > 0 then
-            -- Рассчитываем вектор полета: проецируем движение джойстика на CFrame камеры
             local lookVector = Camera.CFrame.LookVector
             local rightVector = Camera.CFrame.RightVector
-            
-            -- Получаем локальное смещение джойстика
-            local localX = moveDir:Dot(workspace.CurrentCamera.CFrame.RightVector)
-            local localZ = moveDir:Dot(workspace.CurrentCamera.CFrame.LookVector)
-            
-            -- Итоговое направление полета (включая Y координату взгляда камеры)
+            local localX = moveDir:Dot(Camera.CFrame.RightVector)
+            local localZ = moveDir:Dot(Camera.CFrame.LookVector)
             local finalDirection = (lookVector * localZ) + (rightVector * localX)
             FlyBV.Velocity = finalDirection.Unit * states.FlySpeed
         else
-            -- Если джойстик отпущен — идеально зависаем в воздухе
             FlyBV.Velocity = Vector3.new(0, 0, 0)
         end
     else
-        -- Очистка при выключении
         if FlyBV then FlyBV:Destroy() FlyBV = nil end
         if FlyBG then FlyBG:Destroy() FlyBG = nil end
     end
@@ -235,64 +295,64 @@ local function setInvis(state)
     end
 end
 
--- 3. НАСТРАИВАЕМЫЙ ESP
-local function applyESP(player)
-    if player == LocalPlayer then return end
-    local function addHighlight(character)
-        task.wait(0.2)
-        local isEnemy = (LocalPlayer.Team == nil or player.Team ~= LocalPlayer.Team)
-        local allowed = not states.ESP_OnlyEnemies or isEnemy
-        
-        if states.ESP and allowed and not character:FindFirstChild("Custom_ESP") then
-            local hl = Instance.new("Highlight", character)
-            hl.Name = "Custom_ESP"
-            hl.FillColor = isEnemy and Color3.fromRGB(255, 0, 50) or Color3.fromRGB(0, 255, 100)
-            hl.OutlineColor = Color3.fromRGB(255, 255, 255)
-            hl.FillTransparency = 0.4
+-- 3. BOX ESP (Квадратная обводка врагов)
+local function createBoxESP(player)
+    local box = Drawing.new("Square")
+    box.Color = Color3.fromRGB(255, 0, 100)
+    box.Thickness = 1.5
+    box.Filled = false
+    box.Visible = false
+
+    local conn
+    conn = RunService.RenderStepped:Connect(function()
+        if states.ESP and player and player.Character and player.Character:FindFirstChild("HumanoidRootPart") and player.Character:FindFirstChildOfClass("Humanoid") and player.Character.Humanoid.Health > 0 then
+            local isEnemy = (LocalPlayer.Team == nil or player.Team ~= LocalPlayer.Team)
+            if isEnemy and player ~= LocalPlayer then
+                local rootPart = player.Character.HumanoidRootPart
+                local position, onScreen = Camera:WorldToViewportPoint(rootPart.Position)
+                
+                if onScreen then
+                    local sizeX = 2000 / position.Z
+                    local sizeY = 3000 / position.Z
+                    
+                    box.Size = Vector2.new(sizeX, sizeY)
+                    box.Position = Vector2.new(position.X - sizeX / 2, position.Y - sizeY / 2)
+                    box.Visible = true
+                    return
+                end
+            end
         end
-    end
-    if player.Character then addHighlight(player.Character) end
-    player.CharacterAdded:Connect(addHighlight)
+        box.Visible = false
+        if not player or not player.Parent then
+            box:Destroy()
+            conn:Disconnect()
+        end
+    end)
 end
 
-local function updateESP()
-    for _, p in pairs(Players:GetPlayers()) do
-        if p.Character then
-            local old = p.Character:FindFirstChild("Custom_ESP")
-            if old then old:Destroy() end
-            if states.ESP then applyESP(p) end
-        end
-    end
-end
+for _, p in pairs(Players:GetPlayers()) do createBoxESP(p) end
+Players.PlayerAdded:Connect(createBoxESP)
 
-RunService.Heartbeat:Connect(function()
-    if states.ESP then updateESP() end
-end)
-
--- 4. НАСТРАИВАЕМЫЙ AIMBOT
-local function getClosestPlayer()
+-- 4. AIMBOT С ЦЕНТРАЛЬНЫМ НАСТРАИВАЕМЫМ FOV
+local function getClosestPlayerToCenter()
     local closestTarget = nil
     local shortestDistance = math.huge
+    local centerScreen = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
 
     for _, player in pairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head") then
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head") and player.Character:FindFirstChildOfClass("Humanoid") and player.Character.Humanoid.Health > 0 then
             if player.Team and player.Team == LocalPlayer.Team then continue end
             
             local head = player.Character.Head
             local screenPos, onScreen = Camera:WorldToViewportPoint(head.Position)
             
             if onScreen then
-                local mousePos = Vector2.new(Mouse.X, Mouse.Y)
                 local targetPos = Vector2.new(screenPos.X, screenPos.Y)
-                local distanceToMouse = (targetPos - mousePos).Magnitude
+                local distanceToCenter = (targetPos - centerScreen).Magnitude
                 
-                if distanceToMouse <= states.Aim_FOV and distanceToMouse < shortestDistance then
-                    if states.Aim_WallCheck then
-                        local parts = Camera:GetPartsObscuringTarget({Camera.CFrame.Position, head.Position}, {LocalPlayer.Character, player.Character})
-                        if #parts > 0 then continue end
-                    end
-                    
-                    shortestDistance = distanceToMouse
+                -- Проверка: находится ли враг внутри текущего динамического радиуса FOV
+                if distanceToCenter <= states.Aim_FOV and distanceToCenter < shortestDistance then
+                    shortestDistance = distanceToCenter
                     closestTarget = head
                 end
             end
@@ -302,12 +362,13 @@ local function getClosestPlayer()
 end
 
 RunService.RenderStepped:Connect(function()
-    FOVCircle.Position = Vector2.new(Mouse.X, Mouse.Y + 36)
-    FOVCircle.Radius = states.Aim_FOV
+    local centerScreen = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+    FOVCircle.Position = centerScreen
+    FOVCircle.Radius = states.Aim_FOV -- Синхронизируем радиус круга со значением из ползунка
     FOVCircle.Visible = states.Aimbot
     
     if states.Aimbot then
-        local target = getClosestPlayer()
+        local target = getClosestPlayerToCenter()
         if target then
             Camera.CFrame = CFrame.new(Camera.CFrame.Position, target.Position)
         end
@@ -336,20 +397,23 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
--- [[ ИНИЦИАЛИЗАЦИЯ ТУМБЛЕРОВ В МЕНЮ ]]
+-- [[ ИНИЦИАЛИЗАЦИЯ ТУМБЛЕРОВ И ПОЛЗУНКОВ В МЕНЮ ]]
 createToggle("Режим полета (Fly Joystick)", false, function(s) states.Fly = s end)
 createToggle("Невидимость (Локально)", false, function(s) states.Invis = s setInvis(s) end)
 createToggle("Мега Скорость бега", false, function(s) states.SpeedToggle = s end)
 createToggle("Отталкивать игроков (Fling)", false, function(s) states.PushPlayers = s end)
+createToggle("Включить Box ESP (Враги)", false, function(s) states.ESP = s end)
+createToggle("Включить Аимбот", false, function(s) states.Aimbot = s end)
 
--- Настройки ESP
-createToggle("Включить подсветку (ESP)", false, function(s) states.ESP = s updateESP() end)
-createToggle("ESP: Только ПРОТИВНИКИ", true, function(s) states.ESP_OnlyEnemies = s updateESP() end)
+-- Ползунок настройки радиуса FOV для Аима (Минимум: 30, Максимум: 500)
+createSlider("Радиус Аима (Aim FOV)", 30, 500, 150, function(value)
+    states.Aim_FOV = value
+end)
 
--- Настройки Аима
-createToggle("Включить Аимбот (Aimbot)", false, function(s) states.Aimbot = s end)
-createToggle("Аим: Проверка стен (WallCheck)", true, function(s) states.Aim_WallCheck = s end)
-createToggle("Аим: Большой радиус FOV", false, function(s) states.Aim_FOV = s and 300 or 150 end)
+LocalPlayer.CharacterAdded:Connect(function()
+    task.wait(0.5)
+    if states.Invis then setInvis(true) end
+end)
 
 -- [[ ПРОВЕРКА КЛЮЧА ]]
 CheckKeyBtn.MouseButton1Click:Connect(function()
