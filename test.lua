@@ -1,4 +1,5 @@
-Local CoreGui = game:GetService("CoreGui")
+-- ИСПРАВЛЕНО: 'local' должно быть строго с маленькой буквы
+local CoreGui = game:GetService("CoreGui")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -9,7 +10,7 @@ local Camera = workspace.CurrentCamera
 local CORRECT_KEY = "Lordikhhh"
 
 -- [[ НАСТРОЙКИ ]]
-local Smoothness = 0.15 -- Скорость наводки аима (чем выше, тем быстрее)
+local Smoothness = 0.15 
 local AimPart = "Head"
 
 local states = { 
@@ -23,7 +24,6 @@ local states = {
 
 local menuToggles = {}
 
--- Полная очистка старых интерфейсов перед запуском
 if CoreGui:FindFirstChild("DeltaMegaMenu") then CoreGui.DeltaMegaMenu:Destroy() end
 
 local ScreenGui = Instance.new("ScreenGui")
@@ -113,9 +113,8 @@ ScrollContainer.CanvasSize = UDim2.new(0, 0, 0, 580)
 ScrollContainer.ScrollBarThickness = 4
 ScrollContainer.Parent = MainPanel
 
--- Кнопка скрыть/показать меню
 local ToggleMenuBtn = Instance.new("TextButton")
-ToggleMenuBtn.Size = UDim2.new(0, 90, 0, 35)
+ToggleMenuBtn.Size = UDim2.new(0, 110, 0, 35)
 ToggleMenuBtn.Position = UDim2.new(0.05, 0, 0.05, 0)
 ToggleMenuBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
 ToggleMenuBtn.TextColor3 = Color3.fromRGB(255, 0, 100)
@@ -131,9 +130,8 @@ ToggleMenuBtn.MouseButton1Click:Connect(function()
     ToggleMenuBtn.Text = MainPanel.Visible and "CLOSE MENU" or "OPEN MENU"
 end)
 
--- [[ БЫСТРАЯ КНОПКА АИМА НА ЭКРАНЕ ]]
 local QuickAimBtn = Instance.new("TextButton")
-QuickAimBtn.Size = UDim2.new(0, 90, 0, 35)
+QuickAimBtn.Size = UDim2.new(0, 110, 0, 35)
 QuickAimBtn.Position = UDim2.new(0.05, 0, 0.05, 42)
 QuickAimBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
 QuickAimBtn.TextColor3 = Color3.fromRGB(150, 150, 150)
@@ -149,11 +147,11 @@ local function updateQuickAimVisual(isActive)
     if isActive then
         QuickAimBtn.Text = "AIM: ON"
         QuickAimBtn.TextColor3 = Color3.fromRGB(255, 0, 100)
-        QuickAimBtn.UIStroke.Color = Color3.fromRGB(255, 0, 100)
+        if QuickAimBtn:FindFirstChildOfClass("UIStroke") then QuickAimBtn.UIStroke.Color = Color3.fromRGB(255, 0, 100) end
     else
         QuickAimBtn.Text = "AIM: OFF"
         QuickAimBtn.TextColor3 = Color3.fromRGB(150, 150, 150)
-        QuickAimBtn.UIStroke.Color = Color3.fromRGB(50, 50, 60)
+        if QuickAimBtn:FindFirstChildOfClass("UIStroke") then QuickAimBtn.UIStroke.Color = Color3.fromRGB(50, 50, 60) end
     end
     if menuToggles["Включить Аимбот"] then
         menuToggles["Включить Аимбот"].BackgroundColor3 = isActive and Color3.fromRGB(255, 0, 100) or Color3.fromRGB(50, 50, 60)
@@ -162,9 +160,8 @@ end
 
 QuickAimBtn.MouseButton1Click:Connect(function() updateQuickAimVisual(not states.Aimbot) end)
 
--- [[ БЫСТРАЯ КНОПКА ФЛАЯ НА ЭКРАНЕ ]]
 local QuickFlyBtn = Instance.new("TextButton")
-QuickFlyBtn.Size = UDim2.new(0, 90, 0, 35)
+QuickFlyBtn.Size = UDim2.new(0, 110, 0, 35)
 QuickFlyBtn.Position = UDim2.new(0.05, 0, 0.05, 84)
 QuickFlyBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
 QuickFlyBtn.TextColor3 = Color3.fromRGB(150, 150, 150)
@@ -180,11 +177,11 @@ local function updateQuickFlyVisual(isActive)
     if isActive then
         QuickFlyBtn.Text = "FLY: ON"
         QuickFlyBtn.TextColor3 = Color3.fromRGB(255, 0, 100)
-        QuickFlyBtn.UIStroke.Color = Color3.fromRGB(255, 0, 100)
+        if QuickFlyBtn:FindFirstChildOfClass("UIStroke") then QuickFlyBtn.UIStroke.Color = Color3.fromRGB(255, 0, 100) end
     else
         QuickFlyBtn.Text = "FLY: OFF"
         QuickFlyBtn.TextColor3 = Color3.fromRGB(150, 150, 150)
-        QuickFlyBtn.UIStroke.Color = Color3.fromRGB(50, 50, 60)
+        if QuickFlyBtn:FindFirstChildOfClass("UIStroke") then QuickFlyBtn.UIStroke.Color = Color3.fromRGB(50, 50, 60) end
     end
     if menuToggles["Режим полета (Fly)"] then
         menuToggles["Режим полета (Fly)"].BackgroundColor3 = isActive and Color3.fromRGB(255, 0, 100) or Color3.fromRGB(50, 50, 60)
@@ -313,7 +310,30 @@ local function createSlider(name, min, max, default, callback)
     buttonY = buttonY + 63
 end
 
--- Проверка команд (тиммейты)
+-- [[ ИНИЦИАЛИЗАЦИЯ ЭЛЕМЕНТОВ МЕНЮ ]]
+createToggle("Включить Аимбот", states.Aimbot, function(val) states.Aimbot = val end)
+createSlider("Радиус Аима (FOV)", 10, 500, states.Aim_FOV, function(val) states.Aim_FOV = val end)
+createToggle("Режим полета (Fly)", states.Fly, function(val) states.Fly = val end)
+createSlider("Скорость полета", 10, 200, states.FlySpeed, function(val) states.FlySpeed = val end)
+createToggle("Включить ESP (Подсветка)", states.ESP, function(val) states.ESP = val end)
+
+-- [[ ЛОГИКА КЛЮЧА ]]
+CheckKeyBtn.MouseButton1Click:Connect(function()
+    if KeyInput.Text == CORRECT_KEY then
+        KeyFrame:Destroy()
+        MainPanel.Visible = true
+        ToggleMenuBtn.Visible = true
+        QuickAimBtn.Visible = true
+        QuickFlyBtn.Visible = true
+    else
+        KeyInput.Text = ""
+        KeyInput.PlaceholderText = "НЕВЕРНЫЙ КЛЮЧ!"
+        task.delay(2, function()
+            if KeyInput then KeyInput.PlaceholderText = "Введите секретный ключ..." end
+        end)
+    end
+end)
+
 local function checkIsTeammate(player)
     if player == LocalPlayer then return true end
     if LocalPlayer.Team and player.Team then
@@ -408,25 +428,14 @@ local function getClosestPlayerToCenter()
     return closestTarget
 end
 
--- [[ ЦИКЛ АИМБОТА (СИМУЛЯЦИЯ МЫШИ) ]]
+-- [[ ЦИКЛ АИМБОТА ]]
 RunService.RenderStepped:Connect(function()
     if states.Aimbot then
         local target = getClosestPlayerToCenter()
         if target then
-            local screenPos, onScreen = Camera:WorldToViewportPoint(target.Position)
-            if onScreen then
-                local centerScreen = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
-                local mouseMoveX = (screenPos.X - centerScreen.X) * Smoothness
-                local mouseMoveY = (screenPos.Y - centerScreen.Y) * Smoothness
-                
-                if mousemoverel then
-                    mousemoverel(mouseMoveX, mouseMoveY)
-                else
-                    local currentCFrame = Camera.CFrame
-                    local targetCFrame = CFrame.new(currentCFrame.Position, target.Position)
-                    Camera.CFrame = currentCFrame:Lerp(targetCFrame, Smoothness)
-                end
-            end
+            local currentCFrame = Camera.CFrame
+            local targetCFrame = CFrame.new(currentCFrame.Position, target.Position)
+            Camera.CFrame = currentCFrame:Lerp(targetCFrame, Smoothness)
         end
     end
 end)
