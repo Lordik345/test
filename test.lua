@@ -1,6 +1,5 @@
 local CoreGui = game:GetService("CoreGui")
 local Players = game:GetService("Players")
-local Teams = game:GetService("Teams")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
@@ -10,8 +9,8 @@ local Camera = workspace.CurrentCamera
 local CORRECT_KEY = "Lordikhhh"
 
 -- [[ НАСТРОЙКИ АИМБОТА ]]
-local Smoothness = 0.2 -- Плавность: чем меньше, тем быстрее наводка (0.1 - быстро, 0.4 - плавно)
-local AimPart = "Head"  -- Куда целиться: "Head" (голова) или "HumanoidRootPart" (тело)
+local Smoothness = 0.15 
+local AimPart = "Head"
 
 local states = { 
     Fly = false, FlySpeed = 60,
@@ -23,7 +22,10 @@ local states = {
     Aim_FOV = 150
 }
 
--- Удаляем старое меню, если оно было запущено ранее
+-- Глобальная таблица для синхронизации тумблеров меню
+local menuToggles = {}
+
+-- Удаляем старое меню
 if CoreGui:FindFirstChild("DeltaMegaMenu") then CoreGui.DeltaMegaMenu:Destroy() end
 
 local ScreenGui = Instance.new("ScreenGui")
@@ -31,7 +33,7 @@ ScreenGui.Name = "DeltaMegaMenu"
 ScreenGui.Parent = CoreGui
 ScreenGui.ResetOnSpawn = false
 
--- FOV Круг для Аимбота
+-- FOV Круг
 local FOVCircle = Drawing.new("Circle")
 FOVCircle.Color = Color3.fromRGB(255, 0, 100)
 FOVCircle.Thickness = 1.5
@@ -52,7 +54,7 @@ local function styleElement(element, radius, strokeColor)
     end
 end
 
--- [[ 1. ОКНО ВВОДА КЛЮЧА ]]
+-- [[ UI ОКНА ВВОДА КЛЮЧА ]]
 local KeyFrame = Instance.new("Frame")
 KeyFrame.Size = UDim2.new(0, 300, 0, 180)
 KeyFrame.Position = UDim2.new(0.5, -150, 0.4, -90)
@@ -94,12 +96,12 @@ CheckKeyBtn.Font = Enum.Font.GothamBold
 styleElement(CheckKeyBtn, 8)
 CheckKeyBtn.Parent = KeyFrame
 
--- [[ 2. ГЛАВНОЕ МЕНЮ ФУНКЦИЙ ]]
+-- [[ UI ГЛАВНОГО МЕНЮ ]]
 local MainPanel = Instance.new("Frame")
 MainPanel.Size = UDim2.new(0, 340, 0, 420)
 MainPanel.Position = UDim2.new(0.5, -170, 0.25, -210)
 MainPanel.BackgroundColor3 = Color3.fromRGB(12, 12, 15)
-MainPanel.Visible = false -- Скрыто, пока не введен ключ
+MainPanel.Visible = false
 MainPanel.Active = true
 MainPanel.Draggable = true
 styleElement(MainPanel, 14, Color3.fromRGB(255, 0, 100))
@@ -108,9 +110,9 @@ MainPanel.Parent = ScreenGui
 local MainTitle = Instance.new("TextLabel")
 MainTitle.Size = UDim2.new(1, 0, 0, 45)
 MainTitle.BackgroundTransparency = 1
-MainTitle.Text = "LORD HUB VIP v4.0"
+MainTitle.Text = "LORD HUB VIP v4.0 (LOST FRONT FIX)"
 MainTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
-MainTitle.TextSize = 16
+MainTitle.TextSize = 14
 MainTitle.Font = Enum.Font.GothamBold
 MainTitle.Parent = MainPanel
 
@@ -122,7 +124,7 @@ ScrollContainer.CanvasSize = UDim2.new(0, 0, 0, 420)
 ScrollContainer.ScrollBarThickness = 4
 ScrollContainer.Parent = MainPanel
 
--- Кнопка для скрытия/открытия меню на экране
+-- Кнопка открытия/закрытия меню
 local ToggleMenuBtn = Instance.new("TextButton")
 ToggleMenuBtn.Size = UDim2.new(0, 90, 0, 35)
 ToggleMenuBtn.Position = UDim2.new(0.05, 0, 0.05, 0)
@@ -131,7 +133,7 @@ ToggleMenuBtn.TextColor3 = Color3.fromRGB(255, 0, 100)
 ToggleMenuBtn.TextSize = 14
 ToggleMenuBtn.Font = Enum.Font.SourceSansBold
 ToggleMenuBtn.Text = "CLOSE MENU"
-ToggleMenuBtn.Visible = false -- Скрыта до ввода ключа
+ToggleMenuBtn.Visible = false
 styleElement(ToggleMenuBtn, 8, Color3.fromRGB(255, 0, 100))
 ToggleMenuBtn.Parent = ScreenGui
 
@@ -140,7 +142,43 @@ ToggleMenuBtn.MouseButton1Click:Connect(function()
     ToggleMenuBtn.Text = MainPanel.Visible and "CLOSE MENU" or "OPEN MENU"
 end)
 
--- Конструкторы элементов UI
+-- [[ НОВАЯ БЫСТРАЯ КНОПКА АИМА НА ЭКРАНЕ ]]
+local QuickAimBtn = Instance.new("TextButton")
+QuickAimBtn.Size = UDim2.new(0, 90, 0, 35)
+QuickAimBtn.Position = UDim2.new(0.05, 0, 0.05, 42) -- Встает ровно под кнопкой меню
+QuickAimBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+QuickAimBtn.TextColor3 = Color3.fromRGB(150, 150, 150) -- По умолчанию серый (выключен)
+QuickAimBtn.TextSize = 14
+QuickAimBtn.Font = Enum.Font.SourceSansBold
+QuickAimBtn.Text = "AIM: OFF"
+QuickAimBtn.Visible = false
+styleElement(QuickAimBtn, 8, Color3.fromRGB(50, 50, 60))
+QuickAimBtn.Parent = ScreenGui
+
+-- Функция обновления визуального состояния быстрой кнопки аима
+local function updateQuickAimVisual(isActive)
+    states.Aimbot = isActive
+    if isActive then
+        QuickAimBtn.Text = "AIM: ON"
+        QuickAimBtn.TextColor3 = Color3.fromRGB(255, 0, 100)
+        QuickAimBtn.UIStroke.Color = Color3.fromRGB(255, 0, 100)
+    else
+        QuickAimBtn.Text = "AIM: OFF"
+        QuickAimBtn.TextColor3 = Color3.fromRGB(150, 150, 150)
+        QuickAimBtn.UIStroke.Color = Color3.fromRGB(50, 50, 60)
+    end
+    -- Синхронизируем тумблер внутри основного меню, если он существует
+    if menuToggles["Включить Аимбот"] then
+        menuToggles["Включить Аимбот"].BackgroundColor3 = isActive and Color3.fromRGB(255, 0, 100) or Color3.fromRGB(50, 50, 60)
+    end
+end
+
+QuickAimBtn.MouseButton1Click:Connect(function()
+    updateQuickAimVisual(not states.Aimbot)
+end)
+
+
+-- [[ КОНСТРУКТОРЫ UI ЭЛЕМЕНТОВ ]]
 local buttonY = 10
 local function createToggle(name, default, callback)
     local Frame = Instance.new("Frame")
@@ -169,11 +207,19 @@ local function createToggle(name, default, callback)
     styleElement(ToggleBtn, 11)
     ToggleBtn.Parent = Frame
 
+    menuToggles[name] = ToggleBtn -- Сохраняем ссылку для синхронизации
+
     local active = default
     ToggleBtn.MouseButton1Click:Connect(function()
         active = not active
         ToggleBtn.BackgroundColor3 = active and Color3.fromRGB(255, 0, 100) or Color3.fromRGB(50, 50, 60)
-        callback(active)
+        
+        -- Если переключают аим внутри меню — обновляем и экранную кнопку
+        if name == "Включить Аимбот" then
+            updateQuickAimVisual(active)
+        else
+            callback(active)
+        end
     end)
     buttonY = buttonY + 48
 end
@@ -251,29 +297,39 @@ local function createSlider(name, min, max, default, callback)
     buttonY = buttonY + 63
 end
 
--- Вспомогательная функция для проверки команд (для Аима и ESP)
-local function checkIsTeammate(player)
-    if not player then return false end
-    if LocalPlayer.Team and player.Team and LocalPlayer.Team == player.Team then
-        return true
-    elseif LocalPlayer.TeamColor and player.TeamColor and LocalPlayer.TeamColor == player.TeamColor then
-        return true
+-- [[ ПРОВЕРКА ДЛЯ LOST FRONT ]]
+local function getPlayerFaction(player)
+    if not player then return nil end
+    local factionVal = player:FindFirstChild("Faction") or player:FindFirstChild("TeamName") or player:FindFirstChild("Squad")
+    if factionVal and factionVal:IsA("ValueBase") then return tostring(factionVal.Value) end
+    if player.Character then
+        local charFaction = player.Character:FindFirstChild("Faction") or player.Character:FindFirstChild("Team")
+        if charFaction and charFaction:IsA("ValueBase") then return tostring(charFaction.Value) end
     end
+    if player.Team then return player.Team.Name end
+    if player.TeamColor then return tostring(player.TeamColor) end
+    return nil
+end
+
+local function checkIsTeammate(player)
+    if player == LocalPlayer then return true end
+    local myFaction = getPlayerFaction(LocalPlayer)
+    local targetFaction = getPlayerFaction(player)
+    if myFaction and targetFaction then return myFaction == targetFaction end
     return false
 end
 
--- Вспомогательная функция проверки видимости цели за стенами
 local function isPlayerVisible(targetChar)
     if not targetChar or not targetChar:FindFirstChild(AimPart) then return false end
     local castPoints = {Camera.CFrame.Position, targetChar[AimPart].Position}
-    local ignoreList = {LocalPlayer.Character, targetChar}
+    local ignoreList = {LocalPlayer.Character, targetChar, workspace:FindFirstChild("RaycastIgnore")}
     local parts = Camera:GetPartsObscuringTarget(castPoints, ignoreList)
     return #parts == 0
 end
 
 -- [[ ЛОГИКА ФУНКЦИОНАЛА ]]
 
--- 1. Режим полета (Fly)
+-- Fly
 local FlyBV, FlyBG
 RunService.RenderStepped:Connect(function()
     local char = LocalPlayer.Character
@@ -299,7 +355,7 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- 2. Локальная невидимость
+-- Невидимость
 local function setInvis(state)
     local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
     for _, part in pairs(char:GetDescendants()) do
@@ -307,7 +363,7 @@ local function setInvis(state)
     end
 end
 
--- 3. Box ESP (Только противники)
+-- Box ESP
 local function createBoxESP(player)
     local box = Drawing.new("Square")
     box.Color = Color3.fromRGB(255, 0, 100)
@@ -334,7 +390,7 @@ end
 for _, p in pairs(Players:GetPlayers()) do createBoxESP(p) end
 Players.PlayerAdded:Connect(createBoxESP)
 
--- 4. Поиск ближайшего врага для Аимбота
+-- Поиск цели
 local function getClosestPlayerToCenter()
     local closestTarget, shortestDistance = nil, math.huge
     local centerScreen = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
@@ -358,7 +414,7 @@ local function getClosestPlayerToCenter()
     return closestTarget
 end
 
--- Основной цикл Аимбота и FOV
+-- Цикл Аима
 RunService.RenderStepped:Connect(function()
     FOVCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
     FOVCircle.Radius = states.Aim_FOV
@@ -373,31 +429,28 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- 5. Скорость бега
+-- Скорость
 RunService.Heartbeat:Connect(function()
     local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
     if hum then hum.WalkSpeed = states.SpeedToggle and states.WalkSpeedVal or 16 end
 end)
 
--- Создаем элементы управления в меню
+-- Создание кнопок меню
 createToggle("Режим полета (Fly)", false, function(s) states.Fly = s end)
 createToggle("Невидимость (Локально)", false, function(s) states.Invis = s setInvis(s) end)
 createToggle("Мега Скорость бега", false, function(s) states.SpeedToggle = s end)
 createToggle("Включить Box ESP (Враги)", false, function(s) states.ESP = s end)
-createToggle("Включить Аимбот", false, function(s) states.Aimbot = s end)
+createToggle("Включить Аимбот", false, function(active) updateQuickAimVisual(active) end)
 createSlider("Радиус Аима (Aim FOV)", 30, 500, 150, function(v) states.Aim_FOV = v end)
 
--- [[ ЛОГИКА АВТОНОМНОЙ ПРОВЕРКИ КЛЮЧА ]]
+-- Проверка локального ключа
 CheckKeyBtn.MouseButton1Click:Connect(function()
-    local typedKey = KeyInput.Text
-    
-    if typedKey == CORRECT_KEY then
-        -- Ключ подошел! Переключаем окна
+    if KeyInput.Text == CORRECT_KEY then
         KeyFrame:Destroy()
         MainPanel.Visible = true
         ToggleMenuBtn.Visible = true
+        QuickAimBtn.Visible = true -- Показываем быструю кнопку аима после авторизации
     else
-        -- Неправильный ввод
         KeyInput.Text = ""
         KeyInput.PlaceholderText = "НЕВЕРНЫЙ КЛЮЧ!"
         KeyInput.PlaceholderColor3 = Color3.fromRGB(255, 50, 50)
