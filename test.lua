@@ -1,4 +1,4 @@
-_G.CorrectKey = "DELTA_MEGA_2026" -- Твой ключ доступа
+_G.CorrectKey = "Lordikhhh" -- Твой новый кастомный ключ доступа
 
 local CoreGui = game:GetService("CoreGui")
 local Players = game:GetService("Players")
@@ -78,7 +78,7 @@ CheckKeyBtn.Parent = KeyFrame
 
 -- [[ 2. ГЛАВНОЕ МЕНЮ ФУНКЦИЙ ]]
 local MainPanel = Instance.new("Frame")
-MainPanel.Size = UDim2.new(0, 330, 0, 360) -- Увеличили размер под новые кнопки
+MainPanel.Size = UDim2.new(0, 330, 0, 360)
 MainPanel.Position = UDim2.new(0.5, -165, 0.25, -180)
 MainPanel.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
 MainPanel.Visible = false
@@ -232,7 +232,7 @@ end)
 
 -- 5. Отталкивание игроков (Fling / Push)
 local BAMV = Instance.new("BodyAngularVelocity")
-BAMV.AngularVelocity = Vector3.new(0, 99999, 0) -- Бешеная скорость вращения хитбокса
+BAMV.AngularVelocity = Vector3.new(0, 99999, 0)
 BAMV.MaxTorque = Vector3.new(0, math.huge, 0)
 BAMV.Name = "PushForce"
 
@@ -244,7 +244,6 @@ RunService.Heartbeat:Connect(function()
             if not root:FindFirstChild("PushForce") then
                 BAMV.Parent = root
             end
-            -- Делаем хитбокс неосязаемым для падений, но жестким для врагов
             root.Velocity = Vector3.new(root.Velocity.X, 0, root.Velocity.Z) 
         end
     else
@@ -283,4 +282,3 @@ CheckKeyBtn.MouseButton1Click:Connect(function()
         KeyInput.PlaceholderColor3 = Color3.fromRGB(100, 100, 110)
     end
 end)
-
