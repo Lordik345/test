@@ -110,7 +110,7 @@ local ScrollContainer = Instance.new("ScrollingFrame")
 ScrollContainer.Size = UDim2.new(1, 0, 1, -50)
 ScrollContainer.Position = UDim2.new(0, 0, 0, 45)
 ScrollContainer.BackgroundTransparency = 1
-ScrollContainer.CanvasSize = UDim2.new(0, 0, 0, 650) -- Увеличено под новые элементы
+ScrollContainer.CanvasSize = UDim2.new(0, 0, 0, 650)
 ScrollContainer.ScrollBarThickness = 4
 ScrollContainer.Parent = MainPanel
 
@@ -317,7 +317,7 @@ createSlider("Радиус Аима (FOV)", 10, 500, states.Aim_FOV, function(va
 createToggle("Режим полета (Fly)", states.Fly, function(val) states.Fly = val end)
 createSlider("Скорость полета", 10, 200, states.FlySpeed, function(val) states.FlySpeed = val end)
 createToggle("Включить ESP (Подсветка)", states.ESP, function(val) states.ESP = val end)
-createToggle("Авто-Отталкивание", states.PushToggle, function(val) states.PushToggle = val val end)
+createToggle("Авто-Отталкивание", states.PushToggle, function(val) states.PushToggle = val end)
 createSlider("Дистанция триггера", 5, 50, states.PushDist, function(val) states.PushDist = val end)
 
 -- [[ ЛОГИКА КЛЮЧА ]]
@@ -504,4 +504,5 @@ RunService.Heartbeat:Connect(function()
                         local pushVelocity = (direction * 180) + Vector3.new(0, 100, 0) -- Направление отталкивания
                         
                         -- Создаем импульс движения
-                        local bv = Instance.new("
+                        local bv = Instance.new("BodyVelocity")
+                     
