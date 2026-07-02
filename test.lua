@@ -1,7 +1,8 @@
-_G.CorrectKey = "Lordikhhh" -- Твой новый кастомный ключ доступа
+_G.CorrectKey = "Lordikhhh" -- Твой ключ доступа
 
 local CoreGui = game:GetService("CoreGui")
 local Players = game:GetService("Players")
+local Teams = game:GetService("Teams")
 local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
@@ -40,7 +41,7 @@ local KeyFrame = Instance.new("Frame")
 KeyFrame.Size = UDim2.new(0, 300, 0, 180)
 KeyFrame.Position = UDim2.new(0.5, -150, 0.4, -90)
 KeyFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
-styleElement(KeyFrame, 12, Color3.fromRGB(255, 0, 100)) -- Ярко-розовый неон
+styleElement(KeyFrame, 12, Color3.fromRGB(255, 0, 100))
 KeyFrame.Parent = ScreenGui
 
 local KeyTitle = Instance.new("TextLabel")
@@ -55,6 +56,7 @@ KeyTitle.Parent = KeyFrame
 local KeyInput = Instance.new("TextBox")
 KeyInput.Size = UDim2.new(0, 240, 0, 35)
 KeyInput.Position = UDim2.new(0.5, -120, 0, 55)
+KeyInput.BackgroundColor3 = Color3.fromRGB(255, 255, 30)
 KeyInput.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
 KeyInput.Text = ""
 KeyInput.PlaceholderText = "Вставь ключ сюда..."
@@ -190,19 +192,24 @@ local function setInvis(state)
     end
 end
 
--- 3. ESP (Подсветка игроков)
+-- 3. УМНЫЙ ESP (Только противники)
 local function applyESP(player)
     if player == LocalPlayer then return end
+    
     local function addHighlight(character)
-        task.wait(0.2)
-        if states.ESP and not character:FindFirstChild("Mega_ESP") then
+        task.wait(0.3)
+        -- Проверка: включен ли ESP, нет ли уже подсветки, и является ли игрок врагом
+        local isEnemy = (LocalPlayer.Team == nil or player.Team ~= LocalPlayer.Team)
+        
+        if states.ESP and isEnemy and not character:FindFirstChild("Enemy_ESP") then
             local hl = Instance.new("Highlight", character)
-            hl.Name = "Mega_ESP"
-            hl.FillColor = Color3.fromRGB(255, 0, 100)
+            hl.Name = "Enemy_ESP"
+            hl.FillColor = Color3.fromRGB(255, 0, 50) -- Красный/розовый для врагов
             hl.OutlineColor = Color3.fromRGB(255, 255, 255)
             hl.FillTransparency = 0.4
         end
     end
+    
     if player.Character then addHighlight(player.Character) end
     player.CharacterAdded:Connect(addHighlight)
 end
@@ -211,12 +218,31 @@ local function toggleESP(state)
     states.ESP = state
     for _, p in pairs(Players:GetPlayers()) do
         if p.Character then
-            local old = p.Character:FindFirstChild("Mega_ESP")
+            local old = p.Character:FindFirstChild("Enemy_ESP")
             if old then old:Destroy() end
             if state then applyESP(p) end
         end
     end
 end
+
+-- Постоянная проверка на смену команд в реальном времени
+RunService.Heartbeat:Connect(function()
+    if states.ESP then
+        for _, p in pairs(Players:GetPlayers()) do
+            if p ~= LocalPlayer and p.Character then
+                local hasESP = p.Character:FindFirstChild("Enemy_ESP")
+                local isEnemy = (LocalPlayer.Team == nil or p.Team ~= LocalPlayer.Team)
+                
+                if isEnemy and not hasESP then
+                    applyESP(p)
+                elseif not isEnemy and hasESP then
+                    hasESP:Destroy() -- Убираем подсветку, если враг стал союзником
+                end
+            end
+        end
+    end
+end)
+
 Players.PlayerAdded:Connect(applyESP)
 
 -- 4. Скорость бега (Speed)
@@ -258,7 +284,7 @@ end)
 -- [[ ИНИЦИАЛИЗАЦИЯ КНОПОК В МЕНЮ ]]
 createToggle("Режим полета (Fly)", function(s) states.Fly = s end)
 createToggle("Невидимость (Локально)", function(s) states.Invis = s setInvis(s) end)
-createToggle("Включить ESP (Подсветка)", function(s) toggleESP(s) end)
+createToggle("ESP (Только ПРОТИВНИКИ)", function(s) toggleESP(s) end)
 createToggle("Мега Скорость бега", function(s) states.SpeedToggle = s end)
 createToggle("Отталкивать игроков (Fling)", function(s) states.PushPlayers = s end)
 
