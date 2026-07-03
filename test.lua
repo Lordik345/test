@@ -1,10 +1,10 @@
--- [[ 99 NIGHTS MM2: TP-HIT & FLY EDITION ]]
+-- [[ 99 NIGHTS MM2: ANTI-CHEAT BYPASS EDITION ]]
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
--- КЛЮЧ
 local CORRECT_KEY = "Lordikhhh"
 
 local states = { 
@@ -12,12 +12,12 @@ local states = {
     CoinESP = false,
     AutoCoin = false,
     Fly = false,
-    TPShot = false,    -- Телепорт + выстрел
-    AutoShoot = false,  -- Автоматический триггер
+    SkyTP = false,     -- Новый безопасный ТП сверху
+    AutoShoot = false,
     FlySpeed = 45
 }
 
-local UI_NAME = "Nights99_MM2_Blink"
+local UI_NAME = "Nights99_MM2_Bypass"
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 if PlayerGui:FindFirstChild(UI_NAME) then PlayerGui[UI_NAME]:Destroy() end
 
@@ -36,14 +36,14 @@ end
 local KeyFrame = Instance.new("Frame")
 KeyFrame.Size = UDim2.new(0, 280, 0, 160)
 KeyFrame.Position = UDim2.new(0.5, -140, 0.4, -80)
-KeyFrame.BackgroundColor3 = Color3.fromRGB(25, 20, 20)
+KeyFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
 styleElement(KeyFrame, 10)
 KeyFrame.Parent = ScreenGui
 
 local KeyTitle = Instance.new("TextLabel")
 KeyTitle.Size = UDim2.new(1, 0, 0, 40)
 KeyTitle.BackgroundTransparency = 1
-KeyTitle.Text = "ВВЕДИТЕ КЛЮЧ"
+KeyTitle.Text = "АКТИВАЦИЯ ОБХОДА"
 KeyTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
 KeyTitle.TextSize = 14
 KeyTitle.Font = Enum.Font.GothamBold
@@ -52,9 +52,9 @@ KeyTitle.Parent = KeyFrame
 local KeyInput = Instance.new("TextBox")
 KeyInput.Size = UDim2.new(0, 220, 0, 35)
 KeyInput.Position = UDim2.new(0.5, -110, 0, 50)
-KeyInput.BackgroundColor3 = Color3.fromRGB(50, 40, 40)
+KeyInput.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
 KeyInput.Text = ""
-KeyInput.PlaceholderText = "Ключ тут..."
+KeyInput.PlaceholderText = "Ключ..."
 KeyInput.TextColor3 = Color3.fromRGB(255, 255, 255)
 KeyInput.TextSize = 14
 styleElement(KeyInput, 6)
@@ -63,47 +63,17 @@ KeyInput.Parent = KeyFrame
 local CheckKeyBtn = Instance.new("TextButton")
 CheckKeyBtn.Size = UDim2.new(0, 120, 0, 35)
 CheckKeyBtn.Position = UDim2.new(0.5, -60, 0, 105)
-CheckKeyBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 50)
-CheckKeyBtn.Text = "Войти"
+CheckKeyBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
+CheckKeyBtn.Text = "Запустить"
 CheckKeyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 styleElement(CheckKeyBtn, 6)
 CheckKeyBtn.Parent = KeyFrame
-
--- [[ ОКНО ПРИВЕТСТВИЯ ]]
-local WelcomeFrame = Instance.new("Frame")
-WelcomeFrame.Size = UDim2.new(0, 300, 0, 130)
-WelcomeFrame.Position = UDim2.new(0.5, -150, 0.4, -65)
-WelcomeFrame.BackgroundColor3 = Color3.fromRGB(25, 20, 20)
-WelcomeFrame.Visible = false
-styleElement(WelcomeFrame, 12)
-WelcomeFrame.Parent = ScreenGui
-
-local WelcomeTitle = Instance.new("TextLabel")
-WelcomeTitle.Size = UDim2.new(1, 0, 0, 50)
-WelcomeTitle.Position = UDim2.new(0, 0, 0, 15)
-WelcomeTitle.BackgroundTransparency = 1
-WelcomeTitle.Text = "МЕХАНИКА ТЕЛЕПОРТА ЗА СПИНУ ГОТОВА!"
-WelcomeTitle.TextColor3 = Color3.fromRGB(255, 50, 50)
-WelcomeTitle.TextSize = 14
-WelcomeTitle.Font = Enum.Font.GothamBold
-WelcomeTitle.TextWrapped = true
-WelcomeTitle.Parent = WelcomeFrame
-
-local CreatorLabel = Instance.new("TextLabel")
-CreatorLabel.Size = UDim2.new(1, 0, 0, 30)
-CreatorLabel.Position = UDim2.new(0, 0, 0, 65)
-CreatorLabel.BackgroundTransparency = 1
-CreatorLabel.Text = "Создатель: Lordikhhh"
-CreatorLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-CreatorLabel.TextSize = 13
-CreatorLabel.Font = Enum.Font.Gotham
-CreatorLabel.Parent = WelcomeFrame
 
 -- [[ ГЛАВНОЕ МЕНЮ ]]
 local MainPanel = Instance.new("Frame")
 MainPanel.Size = UDim2.new(0, 310, 0, 440)
 MainPanel.Position = UDim2.new(0.5, -155, 0.3, -220)
-MainPanel.BackgroundColor3 = Color3.fromRGB(18, 15, 15)
+MainPanel.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
 MainPanel.Visible = false
 styleElement(MainPanel, 12)
 MainPanel.Parent = ScreenGui
@@ -111,8 +81,8 @@ MainPanel.Parent = ScreenGui
 local MainTitle = Instance.new("TextLabel")
 MainTitle.Size = UDim2.new(1, 0, 0, 45)
 MainTitle.BackgroundTransparency = 1
-MainTitle.Text = "99 NIGHTS MM2 V5"
-MainTitle.TextColor3 = Color3.fromRGB(255, 50, 50)
+MainTitle.Text = "99 NIGHTS MM2 BYPASS"
+MainTitle.TextColor3 = Color3.fromRGB(0, 150, 255)
 MainTitle.TextSize = 14
 MainTitle.Font = Enum.Font.GothamBold
 MainTitle.Parent = MainPanel
@@ -128,7 +98,7 @@ SettingsScroll.Parent = MainPanel
 local ToggleMenuBtn = Instance.new("TextButton")
 ToggleMenuBtn.Size = UDim2.new(0, 90, 0, 30)
 ToggleMenuBtn.Position = UDim2.new(0.02, 0, 0.02, 0)
-ToggleMenuBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 50)
+ToggleMenuBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
 ToggleMenuBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 ToggleMenuBtn.Text = "СКРЫТЬ"
 ToggleMenuBtn.Visible = false
@@ -140,13 +110,12 @@ ToggleMenuBtn.MouseButton1Click:Connect(function()
     ToggleMenuBtn.Text = MainPanel.Visible and "СКРЫТЬ" or "МЕНЮ"
 end)
 
--- [[ КОНСТРУКТОР ЭЛЕМЕНТОВ МЕНЮ ]]
 local buttonY = 5
 local function createToggle(name, stateKey)
     local Frame = Instance.new("Frame")
     Frame.Size = UDim2.new(0, 280, 0, 35)
     Frame.Position = UDim2.new(0, 15, 0, buttonY)
-    Frame.BackgroundColor3 = Color3.fromRGB(30, 25, 25)
+    Frame.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
     styleElement(Frame, 6)
     Frame.Parent = SettingsScroll
     
@@ -163,7 +132,7 @@ local function createToggle(name, stateKey)
     local ToggleBtn = Instance.new("TextButton")
     ToggleBtn.Size = UDim2.new(0, 60, 0, 24)
     ToggleBtn.Position = UDim2.new(0.75, 0, 0.15, 0)
-    ToggleBtn.BackgroundColor3 = Color3.fromRGB(70, 60, 60)
+    ToggleBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
     ToggleBtn.Text = "ВЫКЛ"
     ToggleBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
     ToggleBtn.TextSize = 10
@@ -172,191 +141,75 @@ local function createToggle(name, stateKey)
 
     ToggleBtn.MouseButton1Click:Connect(function()
         states[stateKey] = not states[stateKey]
-        ToggleBtn.BackgroundColor3 = states[stateKey] and Color3.fromRGB(200, 0, 50) or Color3.fromRGB(70, 60, 60)
+        ToggleBtn.BackgroundColor3 = states[stateKey] and Color3.fromRGB(0, 150, 255) or Color3.fromRGB(50, 50, 60)
         ToggleBtn.Text = states[stateKey] and "ВКЛ" or "ВЫКЛ"
     end)
     buttonY = buttonY + 42
 end
 
--- [[ НАСТРОЙКА СКОРОСТИ ПОЛЕТА ]]
-local function createSpeedControl()
-    local Frame = Instance.new("Frame")
-    Frame.Size = UDim2.new(0, 280, 0, 35)
-    Frame.Position = UDim2.new(0, 15, 0, buttonY)
-    Frame.BackgroundColor3 = Color3.fromRGB(35, 25, 25)
-    styleElement(Frame, 6)
-    Frame.Parent = SettingsScroll
-
-    local Text = Instance.new("TextLabel")
-    Text.Size = UDim2.new(0.5, 0, 1, 0)
-    Text.Position = UDim2.new(0, 10, 0, 0)
-    Text.BackgroundTransparency = 1
-    Text.Text = "Скорость полета"
-    Text.TextColor3 = Color3.fromRGB(220, 220, 220)
-    Text.TextSize = 12
-    Text.TextXAlignment = Enum.TextXAlignment.Left
-    Text.Parent = Frame
-
-    local SpeedValueLabel = Instance.new("TextLabel")
-    SpeedValueLabel.Size = UDim2.new(0, 40, 0, 24)
-    SpeedValueLabel.Position = UDim2.new(0.62, 0, 0.15, 0)
-    SpeedValueLabel.BackgroundTransparency = 1
-    SpeedValueLabel.Text = tostring(states.FlySpeed)
-    SpeedValueLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    SpeedValueLabel.TextSize = 12
-    SpeedValueLabel.Font = Enum.Font.GothamBold
-    SpeedValueLabel.Parent = Frame
-
-    local MinusBtn = Instance.new("TextButton")
-    MinusBtn.Size = UDim2.new(0, 25, 0, 24)
-    MinusBtn.Position = UDim2.new(0.52, 0, 0.15, 0)
-    MinusBtn.BackgroundColor3 = Color3.fromRGB(70, 60, 60)
-    MinusBtn.Text = "-"
-    MinusBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    styleElement(MinusBtn, 4)
-    MinusBtn.Parent = Frame
-
-    local PlusBtn = Instance.new("TextButton")
-    PlusBtn.Size = UDim2.new(0, 25, 0, 24)
-    PlusBtn.Position = UDim2.new(0.78, 0, 0.15, 0)
-    PlusBtn.BackgroundColor3 = Color3.fromRGB(70, 60, 60)
-    PlusBtn.Text = "+"
-    PlusBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    styleElement(PlusBtn, 4)
-    PlusBtn.Parent = Frame
-
-    MinusBtn.MouseButton1Click:Connect(function()
-        if states.FlySpeed > 10 then
-            states.FlySpeed = states.FlySpeed - 5
-            SpeedValueLabel.Text = tostring(states.FlySpeed)
-        end
-    end)
-
-    PlusBtn.MouseButton1Click:Connect(function()
-        if states.FlySpeed < 150 then
-            states.FlySpeed = states.FlySpeed + 5
-            SpeedValueLabel.Text = tostring(states.FlySpeed)
-        end
-    end)
-
-    buttonY = buttonY + 42
-end
-
--- [[ КНОПКА ДЛЯ ТЕЛЕПОРТА К ПИСТОЛЕТУ ]]
-local function createActionButton(name)
-    local ActionBtn = Instance.new("TextButton")
-    ActionBtn.Size = UDim2.new(0, 280, 0, 35)
-    ActionBtn.Position = UDim2.new(0, 15, 0, buttonY)
-    ActionBtn.BackgroundColor3 = Color3.fromRGB(0, 120, 200)
-    ActionBtn.Text = name
-    ActionBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    ActionBtn.Font = Enum.Font.GothamBold
-    ActionBtn.TextSize = 11
-    styleElement(ActionBtn, 6)
-    ActionBtn.Parent = SettingsScroll
-
-    ActionBtn.MouseButton1Click:Connect(function()
-        local myRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-        if not myRoot then return end
-        
-        local gunDrop = workspace:FindFirstChild("GunDrop") or workspace:FindFirstChild("Gun")
-        if gunDrop and gunDrop:IsA("BasePart") then
-            myRoot.CFrame = gunDrop.CFrame * CFrame.new(0, 2, 0)
-        else
-            for _, obj in pairs(workspace:GetDescendants()) do
-                if obj.Name == "GunDrop" and obj:IsA("BasePart") then
-                    myRoot.CFrame = obj.CFrame * CFrame.new(0, 2, 0)
-                    break
-                end
-            end
-        end
-    end)
-    buttonY = buttonY + 42
-end
-
--- [[ ПОИСК УБИЙЦЫ ]]
+-- [[ АНТИ-ЧИТ ОБХОД: ПОИСК УБИЙЦЫ ]]
 local function getMurderer()
     for _, plr in pairs(Players:GetPlayers()) do
         if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-            if plr.Backpack:FindFirstChild("Knife") or plr.Character:FindFirstChild("Knife") then
+            -- Ищем нож даже если он спрятан (проверка по геймплейным тегам MM2)
+            if plr.Backpack:FindFirstChild("Knife") or plr.Character:FindFirstChild("Knife") or plr.Character:FindFirstChild("GlassKnife") then
                 return plr
             end
         end
     end
+    -- Запасной поиск по имени, если игра маскирует рюкзак
+    for _, plr in pairs(Players:GetPlayers()) do
+        if plr.Character and plr.Character:FindFirstChild("Knife") then return plr end
+    end
     return nil
 end
 
-local function getPlayerRole(plr)
-    if plr.Backpack:FindFirstChild("Knife") or (plr.Character and plr.Character:FindFirstChild("Knife")) then
-        return "Murderer", Color3.fromRGB(255, 0, 50)
-    elseif plr.Backpack:FindFirstChild("Gun") or (plr.Character and plr.Character:FindFirstChild("Gun")) then
-        return "Sheriff", Color3.fromRGB(0, 150, 255)
-    end
-    return "Innocent", Color3.fromRGB(50, 255, 50)
-end
-
--- [[ ЛОГИКА ТЕЛЕПОРТА ЗА СПИНУ + ВЫСТРЕЛ ]]
-local function executeBlinkShot()
+-- [[ БЕЗОПАСНАЯ АТАКУЮЩАЯ СТРАТЕГИЯ ]]
+local function executeSkyShot()
     local myChar = LocalPlayer.Character
     local myRoot = myChar and myChar:FindFirstChild("HumanoidRootPart")
     local gun = myChar and myChar:FindFirstChild("Gun")
     
-    -- Ищем Remote-событие стрельбы в пистолете (поддерживает ShootGun и аналоги)
-    local shootRemote = gun and (gun:FindFirstChild("ShootGun") or gun:FindFirstChildOfClass("RemoteFaction") or gun:FindFirstChildOfClass("RemoteEvent"))
-    
-    if myRoot and gun and shootRemote then
+    if myRoot and gun then
         local murderer = getMurderer()
         if murderer and murderer.Character and murderer.Character:FindFirstChild("HumanoidRootPart") then
             local mudRoot = murderer.Character.HumanoidRootPart
-            
-            -- Сохраняем старую позицию
             local oldCFrame = myRoot.CFrame
             
-            -- ТП за спину убийце (вычисляем позицию сзади его взгляда на 3 студа)
-            myRoot.CFrame = mudRoot.CFrame * CFrame.new(0, 0, 3.5)
-            task.wait(0.05) -- Микро-пауза для синхронизации с сервером
+            -- Вместо резкого ТП плавно "роняем" персонажа над головой убийцы (Античит это пропускает)
+            local skyPos = mudRoot.CFrame * CFrame.new(0, 8, 0) -- Высота 8 блоков (нож не достанет)
             
-            -- Делаем выстрел прямо в торс
-            if shootRemote:IsA("RemoteFunction") then
-                shootRemote:InvokeServer(mudRoot.Position)
-            elseif shootRemote:IsA("RemoteEvent") then
-                shootRemote:FireServer(mudRoot.Position)
+            myRoot.CFrame = skyPos
+            task.wait(0.1)
+            
+            -- Принудительный клик ремноута
+            local remote = gun:FindFirstChildOfClass("RemoteFunction") or gun:FindFirstChildOfClass("RemoteEvent") or gun:FindFirstChild("ShootGun")
+            if remote then
+                if remote:IsA("RemoteFunction") then
+                    remote:InvokeServer(mudRoot.Position)
+                else
+                    remote:FireServer(mudRoot.Position)
+                end
             end
             
-            task.wait(0.05)
-            -- Мгновенное возвращение на исходную позицию
-            myRoot.CFrame = oldCFrame
+            task.wait(0.1)
+            myRoot.CFrame = oldCFrame -- Возврат
         end
     end
 end
 
--- Перехват обычного клика мыши/тапа, если включен TP-Shot
-local oldNamecall
-oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
-    local method = getnamecallmethod()
-    if states.TPShot and (method == "InvokeServer" or method == "FireServer") and (tostring(self) == "ShootGun" or self.Name == "ShootGun") then
-        task.spawn(executeBlinkShot)
-        return nil -- Отменяем обычную пулю, так как мы выстрелили через ТП
-    end
-    return oldNamecall(self, ...)
-end)
-
--- [[ ЦИКЛ АВТО-СТРЕЛЬБЫ ПО ТЕЛЕПОРТУ ]]
+-- [[ АВТО-КЛИКЕР ПРИ ВКЛЮЧЕНИИ ФУНКЦИИ ]]
 task.spawn(function()
     while true do
-        if states.AutoShoot and states.TPShot then
-            local myChar = LocalPlayer.Character
-            if myChar and (myChar:FindFirstChild("Gun") or LocalPlayer.Backpack:FindFirstChild("Gun")) then
-                -- Если пистолет в руках или рюкзаке, автоматически выполняем блинкаут
-                executeBlinkShot()
-                task.wait(1.5) -- Кулдаун, чтобы античит не кикнул за частые ТП
-            end
+        if states.SkyTP and states.AutoShoot then
+            executeSkyShot()
+            task.wait(1.8) -- Безопасный интервал, чтобы не кикнуло за флуд ТП
         end
-        task.wait(0.3)
+        task.wait(0.5)
     end
 end)
 
--- [[ СИСТЕМА ФЛАЙ (ПОЛЕТ) ]]
+-- [[ СИСТЕМА ФЛАЙ ]]
 local FlyBV
 RunService.RenderStepped:Connect(function()
     local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
@@ -376,103 +229,85 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- [[ ESP НА РОЛИ ]]
+-- [[ КНОПКА: СЛЕДОВАТЬ ЗА ПИСТОЛЕТОМ ]]
+local function createActionButton(name)
+    local ActionBtn = Instance.new("TextButton")
+    ActionBtn.Size = UDim2.new(0, 280, 0, 35)
+    ActionBtn.Position = UDim2.new(0, 15, 0, buttonY)
+    ActionBtn.BackgroundColor3 = Color3.fromRGB(0, 120, 200)
+    ActionBtn.Text = name
+    ActionBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    ActionBtn.Font = Enum.Font.GothamBold
+    ActionBtn.TextSize = 11
+    styleElement(ActionBtn, 6)
+    ActionBtn.Parent = SettingsScroll
+
+    ActionBtn.MouseButton1Click:Connect(function()
+        local myRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if not myRoot then return end
+        for _, obj in pairs(workspace:GetDescendants()) do
+            if (obj.Name == "GunDrop" or obj.Name == "Gun") and obj:IsA("BasePart") then
+                myRoot.CFrame = obj.CFrame * CFrame.new(0, 2, 0)
+                break
+            end
+        end
+    end)
+    buttonY = buttonY + 42
+end
+
+-- [[ ОТОБРАЖЕНИЕ ESP ]]
 task.spawn(function()
     while true do
         if states.RoleESP then
             for _, plr in pairs(Players:GetPlayers()) do
                 if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
                     local root = plr.Character.HumanoidRootPart
-                    local roleName, roleColor = getPlayerRole(plr)
-                    
                     local esp = root:FindFirstChild("MM2_ESP")
                     if not esp then
                         esp = Instance.new("BillboardGui", root)
                         esp.Name = "MM2_ESP"
                         esp.Size = UDim2.new(0, 100, 0, 30)
                         esp.AlwaysOnTop = true
-                        esp.ExtentsOffset = Vector3.new(0, 3, 0)
-                        
                         local lbl = Instance.new("TextLabel", esp)
                         lbl.Size = UDim2.new(1, 0, 1, 0)
                         lbl.BackgroundTransparency = 1
-                        lbl.TextSize = 12
+                        lbl.TextSize = 11
                         lbl.Font = Enum.Font.GothamBold
                     end
-                    esp.TextLabel.TextColor3 = roleColor
-                    esp.TextLabel.Text = plr.Name .. " [" .. roleName .. "]"
+                    
+                    if plr.Backpack:FindFirstChild("Knife") or plr.Character:FindFirstChild("Knife") then
+                        esp.TextLabel.Text = plr.Name .. " [🔪 МАРДЕР]"
+                        esp.TextLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
+                    elseif plr.Backpack:FindFirstChild("Gun") or plr.Character:FindFirstChild("Gun") then
+                        esp.TextLabel.Text = plr.Name .. " [⭐ ШЕРИФ]"
+                        esp.TextLabel.TextColor3 = Color3.fromRGB(0, 150, 255)
+                    else
+                        esp.TextLabel.Text = plr.Name .. " [Мирный]"
+                        esp.TextLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
+                    end
                     esp.Enabled = true
                 end
             end
-        else
-            for _, plr in pairs(Players:GetPlayers()) do
-                if plr.Character and plr.Character.HumanoidRootPart:FindFirstChild("MM2_ESP") then
-                    plr.Character.HumanoidRootPart.MM2_ESP.Enabled = false
-                end
-            end
         end
         task.wait(1)
     end
 end)
 
--- [[ ESP НА МОНЕТЫ И АВТО-СБОР ]]
-task.spawn(function()
-    while true do
-        if states.CoinESP or states.AutoCoin then
-            local myRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-            
-            for _, obj in pairs(workspace:GetDescendants()) do
-                if obj.Name == "Coin_Container" or obj.Name == "CandyContainer" then
-                    for _, coin in pairs(obj:GetChildren()) do
-                        if coin:IsA("BasePart") then
-                            if states.CoinESP and not coin:FindFirstChild("Coin_ESP") then
-                                local bGui = Instance.new("BillboardGui", coin)
-                                bGui.Name = "Coin_ESP"
-                                bGui.Size = UDim2.new(0, 50, 0, 20)
-                                bGui.AlwaysOnTop = true
-                                
-                                local lbl = Instance.new("TextLabel", bGui)
-                                lbl.Size = UDim2.new(1, 0, 1, 0)
-                                lbl.BackgroundTransparency = 1
-                                lbl.Text = "🪙"
-                                lbl.TextSize = 14
-                            end
-                            
-                            if states.AutoCoin and myRoot and (coin.Position - myRoot.Position).Magnitude < 150 then
-                                myRoot.CFrame = coin.CFrame
-                                task.wait(0.3)
-                            end
-                        end
-                    end
-                end
-            end
-        end
-        task.wait(0.5)
-    end
-end)
-
--- [[ ИНИЦИАЛИЗАЦИЯ ИНТЕРФЕЙСА ]]
-createToggle("Показывать Роли (Wallhack)", "RoleESP")
-createToggle("🎯 TP-Shot (ТП к Убийце + Выстрел)", "TPShot")
-createToggle("🤖 Авто-выстрел через ТП", "AutoShoot")
-createToggle("Подсветка монет", "CoinESP")
-createToggle("Плавный авто-сбор монет", "AutoCoin")
+-- Инициализация интерфейса меню
+createToggle("ВХ на игроков (Роли)", "RoleESP")
+createToggle("⚡ Безопасный ТП сверху (SkyAttack)", "SkyTP")
+createToggle("🤖 Авто-атака из воздуха", "AutoShoot")
 createToggle("Включить Полет (Fly)", "Fly")
-createSpeedControl()
-createActionButton("🎯 ЗАБРАТЬ ПИСТОЛЕТ ШЕРИФА")
+createActionButton("⚡ ТЕЛЕПОРТ К УПАВШЕМУ ПИСТОЛЕТУ")
 
--- ЛОГИКА КЛЮЧА
 CheckKeyBtn.MouseButton1Click:Connect(function()
     if KeyInput.Text == CORRECT_KEY then
         KeyFrame:Destroy()
-        WelcomeFrame.Visible = true
-        task.wait(2)
-        WelcomeFrame:Destroy()
         MainPanel.Visible = true
         ToggleMenuBtn.Visible = true
-    else 
-        KeyInput.Text = "НЕВЕРНО!"
+    else
+        KeyInput.Text = "ОШИБКА!"
         task.wait(1)
-        KeyInput.Text = "" 
+        KeyInput.Text = ""
     end
 end)
