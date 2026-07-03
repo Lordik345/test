@@ -1,4 +1,4 @@
--- [[ ESP СКРИПТ ДЛЯ 99 НОЧЕЙ С КЛЮЧОМ И ВКЛ/ВЫКЛ ТУМБЛЕРАМИ ]]
+-- [[ 99 NIGHTS PREMIUM HUD: MULTI-TELEPORT EDITION ]]
 local CoreGui = game:GetService("CoreGui")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -9,14 +9,15 @@ local Camera = workspace.CurrentCamera
 -- [[ НАСТРОЙКА КЛЮЧА ]]
 local CORRECT_KEY = "Lordikhhh"
 
--- Состояния кнопок (по умолчанию все ВЫКЛЮЧЕНО)
 local states = { 
     ItemsESP = false,
     ChildrenESP = false,
-    BastionESP = false
+    BastionESP = false,
+    Fly = false,
+    FlySpeed = 50
 }
 
-local UI_NAME = "Nights99_Premium_Hub_v2"
+local UI_NAME = "Nights99_MultiTP_Hub"
 if CoreGui:FindFirstChild(UI_NAME) then CoreGui[UI_NAME]:Destroy() end
 
 local ScreenGui = Instance.new("ScreenGui")
@@ -80,8 +81,8 @@ CheckKeyBtn.Parent = KeyFrame
 
 -- [[ UI ГЛАВНОГО МЕНЮ ]]
 local MainPanel = Instance.new("Frame")
-MainPanel.Size = UDim2.new(0, 330, 0, 240)
-MainPanel.Position = UDim2.new(0.5, -165, 0.35, -120)
+MainPanel.Size = UDim2.new(0, 340, 0, 420)
+MainPanel.Position = UDim2.new(0.5, -170, 0.3, -210)
 MainPanel.BackgroundColor3 = Color3.fromRGB(12, 12, 15)
 MainPanel.Visible = false
 MainPanel.Active = true
@@ -92,21 +93,59 @@ MainPanel.Parent = ScreenGui
 local MainTitle = Instance.new("TextLabel")
 MainTitle.Size = UDim2.new(1, 0, 0, 45)
 MainTitle.BackgroundTransparency = 1
-MainTitle.Text = "99 NIGHTS PREMIUM ESP"
+MainTitle.Text = "99 NIGHTS MULTI-TP HUB"
 MainTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
 MainTitle.TextSize = 14
 MainTitle.Font = Enum.Font.GothamBold
 MainTitle.Parent = MainPanel
 
-local ScrollContainer = Instance.new("ScrollingFrame")
-ScrollContainer.Size = UDim2.new(1, 0, 1, -50)
-ScrollContainer.Position = UDim2.new(0, 0, 0, 45)
-ScrollContainer.BackgroundTransparency = 1
-ScrollContainer.CanvasSize = UDim2.new(0, 0, 0, 200)
-ScrollContainer.ScrollBarThickness = 4
-ScrollContainer.Parent = MainPanel
+-- Контейнер для настроек (ESP, Полет)
+local SettingsScroll = Instance.new("ScrollingFrame")
+SettingsScroll.Size = UDim2.new(1, 0, 0, 210)
+SettingsScroll.Position = UDim2.new(0, 0, 0, 45)
+SettingsScroll.BackgroundTransparency = 1
+SettingsScroll.CanvasSize = UDim2.new(0, 0, 0, 300)
+SettingsScroll.ScrollBarThickness = 4
+SettingsScroll.Parent = MainPanel
 
--- Кнопка скрыть/показать меню
+-- Разделитель разделов меню
+local Line = Instance.new("Frame")
+Line.Size = UDim2.new(0, 310, 0, 2)
+Line.Position = UDim2.new(0, 15, 0, 260)
+Line.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+Line.BorderSizePixel = 0
+Line.Parent = MainPanel
+
+local TpSectionTitle = Instance.new("TextLabel")
+TpSectionTitle.Size = UDim2.new(1, 0, 0, 25)
+TpSectionTitle.Position = UDim2.new(0, 15, 0, 268)
+TpSectionTitle.BackgroundTransparency = 1
+TpSectionTitle.Text = "СПИСОК ДЕТЕЙ ДЛЯ ТЕЛЕПОРТА:"
+TpSectionTitle.TextColor3 = Color3.fromRGB(255, 0, 100)
+TpSectionTitle.TextSize = 11
+TpSectionTitle.Font = Enum.Font.GothamBold
+TpSectionTitle.TextXAlignment = Enum.TextXAlignment.Left
+TpSectionTitle.Parent = MainPanel
+
+-- Нижний контейнер, куда динамически добавляются кнопки ТП к детям
+local TpButtonsContainer = Instance.new("ScrollingFrame")
+TpButtonsContainer.Size = UDim2.new(1, 0, 0, 115)
+TpButtonsContainer.Position = UDim2.new(0, 0, 0, 295)
+TpButtonsContainer.BackgroundTransparency = 1
+TpButtonsContainer.CanvasSize = UDim2.new(0, 0, 0, 120)
+TpButtonsContainer.ScrollBarThickness = 4
+TpButtonsContainer.Parent = MainPanel
+
+local UIListLayout = Instance.new("UIListLayout")
+UIListLayout.Parent = TpButtonsContainer
+UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+UIListLayout.Padding = UDim.new(0, 6)
+
+local UIPadding = Instance.new("UIPadding")
+UIPadding.Parent = TpButtonsContainer
+UIPadding.PaddingLeft = UDim.new(0, 15)
+UIPadding.PaddingTop = UDim.new(0, 2)
+
 local ToggleMenuBtn = Instance.new("TextButton")
 ToggleMenuBtn.Size = UDim2.new(0, 100, 0, 35)
 ToggleMenuBtn.Position = UDim2.new(0.05, 0, 0.05, 0)
@@ -124,7 +163,7 @@ ToggleMenuBtn.MouseButton1Click:Connect(function()
     ToggleMenuBtn.Text = MainPanel.Visible and "CLOSE MENU" or "OPEN MENU"
 end)
 
--- [[ КОНСТРУКТОР КНОПОК ВКЛ/ВЫКЛ ]]
+-- [[ КОНСТРУКТОРЫ СТАНДАРТНЫХ КНОПОК ]]
 local buttonY = 10
 local function createToggle(name, stateKey)
     local Frame = Instance.new("Frame")
@@ -132,7 +171,7 @@ local function createToggle(name, stateKey)
     Frame.Position = UDim2.new(0, 15, 0, buttonY)
     Frame.BackgroundColor3 = Color3.fromRGB(20, 20, 24)
     styleElement(Frame, 8)
-    Frame.Parent = ScrollContainer
+    Frame.Parent = SettingsScroll
     
     local Text = Instance.new("TextLabel")
     Text.Size = UDim2.new(0.65, 0, 1, 0)
@@ -156,21 +195,154 @@ local function createToggle(name, stateKey)
     styleElement(ToggleBtn, 6)
     ToggleBtn.Parent = Frame
 
-    -- Клик переключает состояние true / false
     ToggleBtn.MouseButton1Click:Connect(function()
         states[stateKey] = not states[stateKey]
-        
         if states[stateKey] then
-            ToggleBtn.BackgroundColor3 = Color3.fromRGB(255, 0, 100) -- Яркий розовый при включении
+            ToggleBtn.BackgroundColor3 = Color3.fromRGB(255, 0, 100)
             ToggleBtn.Text = "ВКЛ"
             ToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
         else
-            ToggleBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 60) -- Серый при выключении
+            ToggleBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
             ToggleBtn.Text = "ВЫКЛ"
             ToggleBtn.TextColor3 = Color3.fromRGB(180, 180, 180)
         end
     end)
     buttonY = buttonY + 48
+end
+
+local function createSlider(name, min, max, default, callback)
+    local Frame = Instance.new("Frame")
+    Frame.Size = UDim2.new(0, 290, 0, 55)
+    Frame.Position = UDim2.new(0, 15, 0, buttonY)
+    Frame.BackgroundColor3 = Color3.fromRGB(20, 20, 24)
+    styleElement(Frame, 8)
+    Frame.Parent = SettingsScroll
+
+    local Text = Instance.new("TextLabel")
+    Text.Size = UDim2.new(0.7, 0, 0, 25)
+    Text.Position = UDim2.new(0, 12, 0, 2)
+    Text.BackgroundTransparency = 1
+    Text.Text = name
+    Text.TextColor3 = Color3.fromRGB(220, 220, 220)
+    Text.TextSize = 13
+    Text.Font = Enum.Font.Gotham
+    Text.TextXAlignment = Enum.TextXAlignment.Left
+    Text.Parent = Frame
+
+    local ValueLabel = Instance.new("TextLabel")
+    ValueLabel.Size = UDim2.new(0.25, 0, 0, 25)
+    ValueLabel.Position = UDim2.new(0.7, 0, 0, 2)
+    ValueLabel.BackgroundTransparency = 1
+    ValueLabel.Text = tostring(default)
+    ValueLabel.TextColor3 = Color3.fromRGB(255, 0, 100)
+    ValueLabel.TextSize = 13
+    ValueLabel.Font = Enum.Font.GothamBold
+    ValueLabel.TextXAlignment = Enum.TextXAlignment.Right
+    ValueLabel.Parent = Frame
+
+    local SliderTrack = Instance.new("Frame")
+    SliderTrack.Size = UDim2.new(0, 266, 0, 6)
+    SliderTrack.Position = UDim2.new(0, 12, 0, 35)
+    SliderTrack.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+    styleElement(SliderTrack, 3)
+    SliderTrack.Parent = Frame
+
+    local SliderFill = Instance.new("Frame")
+    SliderFill.Size = UDim2.new((default - min) / (max - min), 0, 1, 0)
+    SliderFill.BackgroundColor3 = Color3.fromRGB(255, 0, 100)
+    styleElement(SliderFill, 3)
+    SliderFill.Parent = SliderTrack
+
+    local SliderButton = Instance.new("TextButton")
+    SliderButton.Size = UDim2.new(0, 14, 0, 14)
+    SliderButton.Position = UDim2.new((default - min) / (max - min), -7, 0.5, -7)
+    SliderButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    SliderButton.Text = ""
+    styleElement(SliderButton, 7, Color3.fromRGB(255, 0, 100))
+    SliderButton.Parent = SliderTrack
+
+    local dragging = false
+    local function updateSlider(input)
+        local deltaX = math.clamp((input.Position.X - SliderTrack.AbsolutePosition.X) / SliderTrack.AbsoluteSize.X, 0, 1)
+        local value = math.floor(min + (deltaX * (max - min)))
+        SliderFill.Size = UDim2.new(deltaX, 0, 1, 0)
+        SliderButton.Position = UDim2.new(deltaX, -7, 0.5, -7)
+        ValueLabel.Text = tostring(value)
+        callback(value)
+    end
+
+    SliderButton.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then dragging = true end
+    end)
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then dragging = false end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then updateSlider(input) end
+    end)
+    buttonY = buttonY + 63
+end
+
+-- [[ СИСТЕМА ДИНАМИЧЕСКИХ КНОПОК ТЕЛЕПОРТА ]]
+local childrenData = {}
+local childCounter = 0
+
+local function updateTpListLayout()
+    local count = 0
+    for _ in pairs(childrenData) do count = count + 1 end
+    TpButtonsContainer.CanvasSize = UDim2.new(0, 0, 0, count * 36)
+end
+
+local function removeChildFromMenu(object)
+    if childrenData[object] then
+        if childrenData[object].Button then
+            childrenData[object].Button:Destroy()
+        end
+        childrenData[object] = nil
+        updateTpListLayout()
+    end
+end
+
+local function addChildToMenu(object, rootPart)
+    if childrenData[object] then return end
+    childCounter = childCounter + 1
+    local currentNum = childCounter
+
+    local TpBtn = Instance.new("TextButton")
+    TpBtn.Size = UDim2.new(0, 290, 0, 30)
+    TpBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 32)
+    TpBtn.Text = "👶 Ребёнок №" .. currentNum .. " [Расчет...]"
+    TpBtn.TextColor3 = Color3.fromRGB(230, 230, 230)
+    TpBtn.TextSize = 12
+    TpBtn.Font = Enum.Font.GothamBold
+    styleElement(TpBtn, 6, Color3.fromRGB(255, 0, 100))
+    TpBtn.Parent = TpButtonsContainer
+
+    childrenData[object] = { Root = rootPart, Button = TpBtn }
+    updateTpListLayout()
+
+    -- Логика клика (Телепорт прямо на ребенка)
+    TpBtn.MouseButton1Click:Connect(function()
+        local myChar = LocalPlayer.Character
+        local myRoot = myChar and myChar:FindFirstChild("HumanoidRootPart")
+        if myRoot and rootPart and rootPart.Parent then
+            myRoot.CFrame = rootPart.CFrame * CFrame.new(0, 3, 0)
+        end
+    end)
+
+    -- Поток обновления расстояния на кнопке
+    task.spawn(function()
+        while object and object.Parent and rootPart and TpBtn do
+            local myChar = LocalPlayer.Character
+            local myRoot = myChar and myChar:FindFirstChild("HumanoidRootPart")
+            if myRoot then
+                local dist = math.floor((rootPart.Position - myRoot.Position).Magnitude)
+                TpBtn.Text = "👶 Ребёнок №" .. currentNum .. " [" .. dist .. "м]"
+            end
+            task.wait(0.5)
+        end
+        removeChildFromMenu(object)
+    end)
 end
 
 -- [[ ЛОГИКА СИСТЕМЫ ESP ]]
@@ -211,7 +383,6 @@ local function createObjectESP(object, color, nameText, stateKey)
         bGui.Parent = object
     end
 
-    -- Этот поток постоянно проверяет, включена ли функция кнопкой
     task.spawn(function()
         while object and object.Parent and highlight and bGui do
             if states[stateKey] and targetPart then
@@ -220,7 +391,6 @@ local function createObjectESP(object, color, nameText, stateKey)
                 highlight.Enabled = true
                 bGui.Enabled = true
             else
-                -- Если в меню выключили — убираем ESP с карты полностью
                 highlight.Enabled = false
                 bGui.Enabled = false
             end
@@ -230,27 +400,98 @@ local function createObjectESP(object, color, nameText, stateKey)
 end
 
 local function scanMap(object)
+    if not object or not object.Parent then return end
     local name = object.Name:lower()
-    if name:find("child") or name:find("kid") or name:find("baby") or name:find("ребенок") then
-        createObjectESP(object, Color3.fromRGB(255, 215, 0), "👶 РЕБЕНОК", "ChildrenESP")
-    elseif name:find("bastion") or name:find("diamond") or name:find("бастион") then
+    
+    if LocalPlayer.Character and object:IsDescendantOf(LocalPlayer.Character) then return end
+    if Players:GetPlayerFromCharacter(object) or Players:GetPlayerFromCharacter(object.Parent) then return end
+
+    -- 1. Алмазный Бастион
+    if name:find("bastion") or name:find("diamond") or name:find("бастион") then
         createObjectESP(object, Color3.fromRGB(0, 191, 255), "💎 БАСТИОН", "BastionESP")
-    elseif name:find("item") or name:find("pickup") or name:find("scrap") or object:FindFirstChildOfClass("ClickDetector") then
+        return
+    end
+
+    -- 2. Дети (С автоматическим добавлением кнопок ТП)
+    local hasHumanoid = object:FindFirstChildOfClass("Humanoid")
+    local isMonster = name:find("monster") or name:find("bot") or name:find("killer") or name:find("enemy") or name:find("враг")
+    
+    if (name:find("child") or name:find("kid") or name:find("baby") or name:find("ребенок") or name:find("спасти")) or (hasHumanoid and not isMonster) then
+        local root = object:FindFirstChild("HumanoidRootPart") or object:FindFirstChildWhichIsA("BasePart")
+        if root then
+            createObjectESP(object, Color3.fromRGB(255, 215, 0), "👶 РЕБЕНОК", "ChildrenESP")
+            addChildToMenu(object, root)
+        end
+        return
+    end
+
+    -- 3. Предметы / Лут
+    if name:find("item") or name:find("pickup") or name:find("scrap") or object:FindFirstChildOfClass("ClickDetector") or object:FindFirstChildOfClass("ProximityPrompt") then
         createObjectESP(object, Color3.fromRGB(50, 255, 50), "📦 ПРЕДМЕТ", "ItemsESP")
     end
 end
 
 workspace.DescendantAdded:Connect(function(obj)
-    task.wait(0.1)
+    task.wait(0.2)
     if obj and obj.Parent then scanMap(obj) end
 end)
 
 for _, desc in pairs(workspace:GetDescendants()) do scanMap(desc) end
 
--- [[ ДОБАВЛЕНИЕ КНОПОК В МЕНЮ ]]
+-- Очистка списка телепортов при удалении объектов из игры
+RunService.Heartbeat:Connect(function()
+    for obj, _ in pairs(childrenData) do
+        if not obj or not obj.Parent then
+            removeChildFromMenu(obj)
+        end
+    end
+    -- Если детей на карте вообще нет — сбрасываем общий счетчик номеров
+    local empty = true
+    for _ in pairs(childrenData) do empty = false break end
+    if empty then childCounter = 0 end
+end)
+
+-- [[ ЛОГИКА ФУНКЦИИ FLY (ПОЛЕТ) ]]
+local FlyBV, FlyBG
+RunService.RenderStepped:Connect(function()
+    pcall(function()
+        local char = LocalPlayer.Character
+        local root = char and char:FindFirstChild("HumanoidRootPart")
+        local hum = char and char:FindFirstChildOfClass("Humanoid")
+        
+        if states.Fly and root and hum then
+            if not FlyBV or FlyBV.Parent ~= root then 
+                FlyBV = Instance.new("BodyVelocity", root) 
+                FlyBV.MaxForce = Vector3.new(math.huge, math.huge, math.huge) 
+            end
+            if not FlyBG or FlyBG.Parent ~= root then 
+                FlyBG = Instance.new("BodyGyro", root) 
+                FlyBG.P = 9e4 
+                FlyBG.MaxTorque = Vector3.new(math.huge, math.huge, math.huge) 
+            end
+            FlyBG.CFrame = Camera.CFrame
+            local moveDir = hum.MoveDirection
+            if moveDir.Magnitude > 0 then
+                local lookVector = Camera.CFrame.LookVector
+                local rightVector = Camera.CFrame.RightVector
+                FlyBV.Velocity = ((lookVector * (moveDir:Dot(lookVector))) + (rightVector * (moveDir:Dot(rightVector)))).Unit * states.FlySpeed
+            else
+                FlyBV.Velocity = Vector3.new(0, 0, 0)
+            end
+        else
+            if FlyBV then FlyBV:Destroy() FlyBV = nil end
+            if FlyBG then FlyBG:Destroy() FlyBG = nil end
+        end
+    end)
+end)
+
+-- [[ СОЗДАНИЕ КНОПОК И СЛАЙДЕРОВ ]]
 createToggle("ESP на Предметы / Лут", "ItemsESP")
 createToggle("ESP на Детей (Задания)", "ChildrenESP")
 createToggle("ESP на Алмазный Бастион", "BastionESP")
+
+createToggle("Включить Полет (Fly)", "Fly")
+createSlider("Скорость полета", 20, 150, 50, function(v) states.FlySpeed = v end)
 
 -- [[ ЛОГИКА ПРОВЕРКИ КЛЮЧА ]]
 CheckKeyBtn.MouseButton1Click:Connect(function()
