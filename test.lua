@@ -364,18 +364,8 @@ local function applyBypassESP(player)
     if player == LocalPlayer then return end
     
     local function setupChar(char)
-        if char:FindFirstChild("LordESP_Highlight") then char.LordESP_Highlight:Destroy() end
         if char:FindFirstChild("LordESP_Gui") then char.LordESP_Gui:Destroy() end
         
-        local highlight = Instance.new("Highlight")
-        highlight.Name = "LordESP_Highlight"
-        highlight.FillTransparency = 0.4
-        highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
-        highlight.OutlineTransparency = 0
-        highlight.Adornee = char
-        highlight.Enabled = false
-        highlight.Parent = char
-
         local bGui = Instance.new("BillboardGui")
         bGui.Name = "LordESP_Gui"
         bGui.Size = UDim2.new(0, 200, 0, 50)
@@ -388,41 +378,33 @@ local function applyBypassESP(player)
         label.Size = UDim2.new(1, 0, 1, 0)
         label.BackgroundTransparency = 1
         label.TextStrokeTransparency = 0
+        label.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
         label.Font = Enum.Font.GothamBold
-        label.TextSize = 13
+        label.TextSize = 14
         label.Parent = bGui
         bGui.Parent = char
 
         task.spawn(function()
-            while char and char.Parent and bGui and bGui.Parent and highlight do
+            while char and char.Parent and bGui and bGui.Parent do
                 if states.ESP and char:FindFirstChild("HumanoidRootPart") then
                     local role = getMM2Role(player)
+                    local dist = math.floor((char.HumanoidRootPart.Position - Camera.CFrame.Position).Magnitude)
                     
                     if role == "Murderer" then
-                        highlight.FillColor = Color3.fromRGB(255, 0, 0)
                         label.TextColor3 = Color3.fromRGB(255, 0, 0)
-                        local dist = math.floor((char.HumanoidRootPart.Position - Camera.CFrame.Position).Magnitude)
-                        label.Text = "[MURDERER] " .. player.Name .. " (" .. dist .. "m)"
-                        
-                        highlight.Enabled = true
+                        label.Text = "⚠️ [MURDERER] " .. player.Name .. " (" .. dist .. "m) ⚠️"
                         bGui.Enabled = true
                     elseif role == "Sheriff" then
-                        highlight.FillColor = Color3.fromRGB(0, 100, 255)
-                        label.TextColor3 = Color3.fromRGB(0, 140, 255)
-                        local dist = math.floor((char.HumanoidRootPart.Position - Camera.CFrame.Position).Magnitude)
-                        label.Text = "[SHERIFF] " .. player.Name .. " (" .. dist .. "m)"
-                        
-                        highlight.Enabled = true
+                        label.TextColor3 = Color3.fromRGB(0, 150, 255)
+                        label.Text = "⭐ [SHERIFF] " .. player.Name .. " (" .. dist .. "m) ⭐"
                         bGui.Enabled = true
                     else
-                        highlight.Enabled = false
                         bGui.Enabled = false
                     end
                 else
                     bGui.Enabled = false
-                    highlight.Enabled = false
                 end
-                task.wait(0.3)
+                task.wait(0.4)
             end
         end)
     end
@@ -506,4 +488,13 @@ RunService.RenderStepped:Connect(function()
             if states.FlyNoclip then
                 for _, part in pairs(char:GetDescendants()) do
                     if part:IsA("BasePart") and part.CanCollide then
-                        pa
+                        part.CanCollide = false
+                    end
+                end
+            end
+        else
+            if FlyBV then FlyBV:Destroy() FlyBV = nil end
+            if FlyBG then FlyBG:Destroy() FlyBG = nil end
+        end
+    end)
+end)
