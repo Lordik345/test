@@ -13,7 +13,7 @@ local Smoothness = 0.15
 local AimPart = "Head"
 
 local states = { 
-    Fly = false, FlySpeed = 60, FlyNoclip = false, -- Новая настройка для стен
+    Fly = false, FlySpeed = 60, FlyNoclip = false,
     Invis = false, 
     SpeedToggle = false, WalkSpeedVal = 100,
     ESP = false,
@@ -98,7 +98,7 @@ MainPanel.Parent = ScreenGui
 local MainTitle = Instance.new("TextLabel")
 MainTitle.Size = UDim2.new(1, 0, 0, 45)
 MainTitle.BackgroundTransparency = 1
-MainTitle.Text = "LORD HUB VIP v5.5"
+MainTitle.Text = "LORD HUB MM2 VIP"
 MainTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
 MainTitle.TextSize = 14
 MainTitle.Font = Enum.Font.GothamBold
@@ -108,7 +108,7 @@ local ScrollContainer = Instance.new("ScrollingFrame")
 ScrollContainer.Size = UDim2.new(1, 0, 1, -50)
 ScrollContainer.Position = UDim2.new(0, 0, 0, 45)
 ScrollContainer.BackgroundTransparency = 1
-ScrollContainer.CanvasSize = UDim2.new(0, 0, 0, 580) -- Увеличено под новую настройку
+ScrollContainer.CanvasSize = UDim2.new(0, 0, 0, 580)
 ScrollContainer.ScrollBarThickness = 4
 ScrollContainer.Parent = MainPanel
 
@@ -304,7 +304,7 @@ local function createSlider(name, min, max, default, callback)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then dragging = false end
     end)
     UserInputService.InputChanged:Connect(function(input)
-        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then updateSlider(input) end
+        if dragging and (input.UserInputType == MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then updateSlider(input) end
     end)
     buttonY = buttonY + 63
 end
@@ -313,9 +313,9 @@ end
 createToggle("Включить Аимбот", states.Aimbot, function(val) states.Aimbot = val end)
 createSlider("Радиус Аима (FOV)", 10, 500, states.Aim_FOV, function(val) states.Aim_FOV = val end)
 createToggle("Режим полета (Fly)", states.Fly, function(val) states.Fly = val end)
-createToggle("Полет сквозь стены (Noclip)", states.FlyNoclip, function(val) states.FlyNoclip = val end) -- Добавлено в меню
+createToggle("Полет сквозь стены (Noclip)", states.FlyNoclip, function(val) states.FlyNoclip = val end)
 createSlider("Скорость полета", 10, 200, states.FlySpeed, function(val) states.FlySpeed = val end)
-createToggle("Включить ESP (Подсветка)", states.ESP, function(val) states.ESP = val end)
+createToggle("ESP: Мардер и Шериф", states.ESP, function(val) states.ESP = val end) -- Изменено имя под MM2
 
 -- [[ ЛОГИКА КЛЮЧА ]]
 CheckKeyBtn.MouseButton1Click:Connect(function()
@@ -334,32 +334,46 @@ CheckKeyBtn.MouseButton1Click:Connect(function()
     end
 end)
 
-local function checkIsTeammate(player)
-    if player == LocalPlayer then return true end
-    if LocalPlayer.Team and player.Team then
-        return LocalPlayer.Team == player.Team
+-- [[ ФУНКЦИЯ ОПРЕДЕЛЕНИЯ РОЛИ В MM2 ]]
+local function getMM2Role(player)
+    if not player then return "Innocent" end
+    
+    -- Проверка инвентаря (Backpack) и рук (внутри Character)
+    local parts = {}
+    if player.Backpack then
+        for _, item in pairs(player.Backpack:GetChildren()) do table.insert(parts, item) end
     end
-    return false
+    if player.Character then
+        for _, item in pairs(player.Character:GetChildren()) do table.insert(parts, item) end
+    end
+    
+    for _, item in pairs(parts) do
+        if item:IsA("Tool") then
+            if item.Name == "Knife" then
+                return "Murderer"
+            elseif item.Name == "Gun" then
+                return "Sheriff"
+            end
+        end
+    end
+    return "Innocent"
 end
 
--- [[ БЕЗОПАСНЫЙ ОБХОД ДЛЯ ESP (HIGHLIGHTS) ]]
+-- [[ СПЕЦИАЛЬНЫЙ СМАРТ-ESP ДЛЯ MM2 ]]
 local function applyBypassESP(player)
     if player == LocalPlayer then return end
     
     local function setupChar(char)
-        if checkIsTeammate(player) then return end
-        
         if char:FindFirstChild("LordESP_Highlight") then char.LordESP_Highlight:Destroy() end
         if char:FindFirstChild("LordESP_Gui") then char.LordESP_Gui:Destroy() end
         
         local highlight = Instance.new("Highlight")
         highlight.Name = "LordESP_Highlight"
-        highlight.FillColor = Color3.fromRGB(255, 0, 100)
-        highlight.FillTransparency = 0.5
+        highlight.FillTransparency = 0.4
         highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
         highlight.OutlineTransparency = 0
         highlight.Adornee = char
-        highlight.Enabled = states.ESP
+        highlight.Enabled = false
         highlight.Parent = char
 
         local bGui = Instance.new("BillboardGui")
@@ -368,30 +382,50 @@ local function applyBypassESP(player)
         bGui.AlwaysOnTop = true
         bGui.ExtentsOffset = Vector3.new(0, 3, 0)
         bGui.Adornee = char:FindFirstChild("Head")
-        bGui.Enabled = states.ESP
+        bGui.Enabled = false
         
         local label = Instance.new("TextLabel")
         label.Size = UDim2.new(1, 0, 1, 0)
         label.BackgroundTransparency = 1
-        label.TextColor3 = Color3.fromRGB(255, 255, 255)
         label.TextStrokeTransparency = 0
         label.Font = Enum.Font.GothamBold
-        label.TextSize = 12
+        label.TextSize = 13
         label.Parent = bGui
         bGui.Parent = char
 
         task.spawn(function()
-            while char and char.Parent and bGui and bGui.Parent do
+            while char and char.Parent and bGui and bGui.Parent and highlight do
                 if states.ESP and char:FindFirstChild("HumanoidRootPart") then
-                    local dist = math.floor((char.HumanoidRootPart.Position - Camera.CFrame.Position).Magnitude)
-                    label.Text = player.Name .. " [" .. dist .. "m]"
-                    bGui.Enabled = true
-                    highlight.Enabled = true
+                    local role = getMM2Role(player)
+                    
+                    if role == "Murderer" then
+                        -- Настройки для Убийцы (Красный)
+                        highlight.FillColor = Color3.fromRGB(255, 0, 0)
+                        label.TextColor3 = Color3.fromRGB(255, 0, 0)
+                        local dist = math.floor((char.HumanoidRootPart.Position - Camera.CFrame.Position).Magnitude)
+                        label.Text = "[MURDERER] " .. player.Name .. " (" .. dist .. "m)"
+                        
+                        highlight.Enabled = true
+                        bGui.Enabled = true
+                    elseif role == "Sheriff" then
+                        -- Настройки для Шерифа (Синий)
+                        highlight.FillColor = Color3.fromRGB(0, 100, 255)
+                        label.TextColor3 = Color3.fromRGB(0, 140, 255)
+                        local dist = math.floor((char.HumanoidRootPart.Position - Camera.CFrame.Position).Magnitude)
+                        label.Text = "[SHERIFF] " .. player.Name .. " (" .. dist .. "m)"
+                        
+                        highlight.Enabled = true
+                        bGui.Enabled = true
+                    else
+                        -- Невинных игроков просто скрываем с ESP
+                        highlight.Enabled = false
+                        bGui.Enabled = false
+                    end
                 else
                     bGui.Enabled = false
                     highlight.Enabled = false
                 end
-                task.wait(0.2)
+                task.wait(0.3) -- Частота обновления ролей (300 мс)
             end
         end)
     end
@@ -409,7 +443,7 @@ local function getClosestPlayerToCenter()
     local centerScreen = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
     
     for _, player in pairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character and not checkIsTeammate(player) then
+        if player ~= LocalPlayer and player.Character then
             local part = player.Character:FindFirstChild(AimPart)
             local hum = player.Character:FindFirstChildOfClass("Humanoid")
             
@@ -472,17 +506,5 @@ RunService.RenderStepped:Connect(function()
                 FlyBV.Velocity = Vector3.new(0, 0, 0)
             end
             
-            -- Логика прохождения сквозь стены (Noclip)
             if states.FlyNoclip then
-                for _, part in pairs(char:GetDescendants()) do
-                    if part:IsA("BasePart") and part.CanCollide then
-                        part.CanCollide = false
-                    end
-                end
-            end
-        else
-            if FlyBV then FlyBV:Destroy() FlyBV = nil end
-            if FlyBG then FlyBG:Destroy() FlyBG = nil end
-        end
-    end)
-end)
+                for _, part in pairs(char:GetDescenda
