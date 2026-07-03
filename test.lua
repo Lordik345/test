@@ -1,4 +1,4 @@
-local CoreGui = game:GetService("CoreGui")
+local LocalCoreGui = game:GetService("CoreGui")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -109,7 +109,7 @@ local ScrollContainer = Instance.new("ScrollingFrame")
 ScrollContainer.Size = UDim2.new(1, 0, 1, -50)
 ScrollContainer.Position = UDim2.new(0, 0, 0, 45)
 ScrollContainer.BackgroundTransparency = 1
-ScrollContainer.CanvasSize = UDim2.new(0, 0, 0, 500) -- Увеличили размер под новые слайдеры
+ScrollContainer.CanvasSize = UDim2.new(0, 0, 0, 500)
 ScrollContainer.ScrollBarThickness = 4
 ScrollContainer.Parent = MainPanel
 
@@ -431,7 +431,7 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- [[ ЛОГИКА ФЛАЯ С НАСТРОЙКОЙ СКОРОСТИ ]]
+-- [[ ЛОГИКА ФЛАЯ С НАСТРОЙКОЙ СКОРОСТИ И ПРОХОДОМ СКВОЗЬ СТЕНЫ (NOCLIP) ]]
 local FlyBV, FlyBG
 RunService.RenderStepped:Connect(function()
     pcall(function()
@@ -440,6 +440,13 @@ RunService.RenderStepped:Connect(function()
         local hum = char and char:FindFirstChildOfClass("Humanoid")
         
         if states.Fly and root and hum then
+            -- Цикл отключения коллизии для пролета сквозь стены
+            for _, part in pairs(char:GetDescendants()) do
+                if part:IsA("BasePart") and part.CanCollide then
+                    part.CanCollide = false
+                end
+            end
+
             if not FlyBV or FlyBV.Parent ~= root then 
                 FlyBV = Instance.new("BodyVelocity", root) 
                 FlyBV.MaxForce = Vector3.new(math.huge, math.huge, math.huge) 
@@ -492,7 +499,7 @@ end
 
 -- [[ СОЗДАНИЕ КНОПОК И СЛАЙДЕРОВ В МЕНЮ ]]
 createToggle("Режим полета (Fly)", false, function(active) updateQuickFlyVisual(active) end)
-createSlider("Скорость полета", 10, 250, 60, function(v) states.FlySpeed = v end) -- НОВЫЙ СЛАЙДЕР СКОРОСТИ ФЛАЯ
+createSlider("Скорость полета", 10, 250, 60, function(v) states.FlySpeed = v end)
 createToggle("Невидимость (Локально)", false, function(s) states.Invis = s setInvis(s) end)
 createToggle("Мега Скорость бега", false, function(s) states.SpeedToggle = s end)
 createToggle("Включить Box ESP (Враги)", false, function(s) states.ESP = s end)
@@ -509,7 +516,6 @@ CheckKeyBtn.MouseButton1Click:Connect(function()
         QuickFlyBtn.Visible = true
     else
         KeyInput.Text = ""
-        KeyInput.PlaceholderText = "НЕВЕРНЫЙ КЛЮЧ!"
-        KeyInput.PlaceholderColor3 = Color3.fromRGB(255, 50, 50)
-    end
-end)
+        KeyInput.Placehol
+     end
+ end)
