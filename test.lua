@@ -304,7 +304,7 @@ local function createSlider(name, min, max, default, callback)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then dragging = false end
     end)
     UserInputService.InputChanged:Connect(function(input)
-        if dragging and (input.UserInputType == MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then updateSlider(input) end
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then updateSlider(input) end
     end)
     buttonY = buttonY + 63
 end
@@ -315,7 +315,7 @@ createSlider("Радиус Аима (FOV)", 10, 500, states.Aim_FOV, function(va
 createToggle("Режим полета (Fly)", states.Fly, function(val) states.Fly = val end)
 createToggle("Полет сквозь стены (Noclip)", states.FlyNoclip, function(val) states.FlyNoclip = val end)
 createSlider("Скорость полета", 10, 200, states.FlySpeed, function(val) states.FlySpeed = val end)
-createToggle("ESP: Мардер и Шериф", states.ESP, function(val) states.ESP = val end) -- Изменено имя под MM2
+createToggle("ESP: Мардер и Шериф", states.ESP, function(val) states.ESP = val end)
 
 -- [[ ЛОГИКА КЛЮЧА ]]
 CheckKeyBtn.MouseButton1Click:Connect(function()
@@ -334,11 +334,10 @@ CheckKeyBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- [[ ФУНКЦИЯ ОПРЕДЕЛЕНИЯ РОЛИ В MM2 ]]
+-- [[ УМНОЕ ОПРЕДЕЛЕНИЕ РОЛИ В MM2 ]]
 local function getMM2Role(player)
     if not player then return "Innocent" end
     
-    -- Проверка инвентаря (Backpack) и рук (внутри Character)
     local parts = {}
     if player.Backpack then
         for _, item in pairs(player.Backpack:GetChildren()) do table.insert(parts, item) end
@@ -349,9 +348,10 @@ local function getMM2Role(player)
     
     for _, item in pairs(parts) do
         if item:IsA("Tool") then
-            if item.Name == "Knife" then
+            local name = item.Name:lower()
+            if name:find("knife") or name:find("blade") or item:FindFirstChild("KnifeScript") or item:FindFirstChild("Effect") then
                 return "Murderer"
-            elseif item.Name == "Gun" then
+            elseif name:find("gun") or name:find("revolver") or item:FindFirstChild("GunScript") then
                 return "Sheriff"
             end
         end
@@ -359,7 +359,7 @@ local function getMM2Role(player)
     return "Innocent"
 end
 
--- [[ СПЕЦИАЛЬНЫЙ СМАРТ-ESP ДЛЯ MM2 ]]
+-- [[ СМАРТ-ESP ДЛЯ MM2 ]]
 local function applyBypassESP(player)
     if player == LocalPlayer then return end
     
@@ -399,7 +399,6 @@ local function applyBypassESP(player)
                     local role = getMM2Role(player)
                     
                     if role == "Murderer" then
-                        -- Настройки для Убийцы (Красный)
                         highlight.FillColor = Color3.fromRGB(255, 0, 0)
                         label.TextColor3 = Color3.fromRGB(255, 0, 0)
                         local dist = math.floor((char.HumanoidRootPart.Position - Camera.CFrame.Position).Magnitude)
@@ -408,7 +407,6 @@ local function applyBypassESP(player)
                         highlight.Enabled = true
                         bGui.Enabled = true
                     elseif role == "Sheriff" then
-                        -- Настройки для Шерифа (Синий)
                         highlight.FillColor = Color3.fromRGB(0, 100, 255)
                         label.TextColor3 = Color3.fromRGB(0, 140, 255)
                         local dist = math.floor((char.HumanoidRootPart.Position - Camera.CFrame.Position).Magnitude)
@@ -417,7 +415,6 @@ local function applyBypassESP(player)
                         highlight.Enabled = true
                         bGui.Enabled = true
                     else
-                        -- Невинных игроков просто скрываем с ESP
                         highlight.Enabled = false
                         bGui.Enabled = false
                     end
@@ -425,7 +422,7 @@ local function applyBypassESP(player)
                     bGui.Enabled = false
                     highlight.Enabled = false
                 end
-                task.wait(0.3) -- Частота обновления ролей (300 мс)
+                task.wait(0.3)
             end
         end)
     end
@@ -507,4 +504,6 @@ RunService.RenderStepped:Connect(function()
             end
             
             if states.FlyNoclip then
-                for _, part in pairs(char:GetDescenda
+                for _, part in pairs(char:GetDescendants()) do
+                    if part:IsA("BasePart") and part.CanCollide then
+                        pa
