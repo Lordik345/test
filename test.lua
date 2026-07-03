@@ -1,13 +1,13 @@
 -- =======================================================================
--- НАСТРОЙКА КЛЮЧ-СИСТЕМЫ И ИНИЦИАЛИЗАЦИЯ
+-- LORDIKHHH HUB | MURDER MYSTERY 2 | ULTIMATE VERSION
 -- =======================================================================
-local CorrectKey = "Lordikhhh"
 
+local CorrectKey = "Lordikhhh"
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-   Name = "Lordikhhh Hub | MM2 Extended",
-   LoadingTitle = "Загрузка чит-системы...",
+   Name = "Lordikhhh Hub | MM2",
+   LoadingTitle = "Загрузка Lordikhhh Hub...",
    LoadingSubtitle = "by Lordikhhh",
    ConfigurationSaving = { Enabled = false },
    KeySystem = true, 
@@ -17,26 +17,27 @@ local Window = Rayfield:CreateWindow({
       Note = "Правильный ключ: Lordikhhh",
       FileName = "LordikhhhKeyConfig",
       SaveKey = true, 
-      GrabKeyFromUrl = false,
       Key = {CorrectKey}
    }
 })
 
--- Переменные
+-- Сервисы и переменные
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
+local UserInputService = game:GetService("UserInputService")
 
 local EspEnabled = false
 local CoinEspEnabled = false
-local InfiniteJump = false
+local AutoFarmEnabled = false
+local FlyEnabled = false
+local FlySpeed = 50
 
 -- =======================================================================
--- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ (ЛОГИКА)
+-- ФУНКЦИИ
 -- =======================================================================
 
--- Определение роли игрока
 local function GetPlayerRole(player)
     if player.Backpack:FindFirstChild("Knife") or (player.Character and player.Character:FindFirstChild("Knife")) then
         return "Murderer"
@@ -47,187 +48,123 @@ local function GetPlayerRole(player)
     end
 end
 
--- Поиск выпавшего пистолета на карте
 local function GetDroppedGun()
-    -- В ММ2 выпавший пистолет обычно респивнится как объект GunDrop в Workspace
-    return Workspace:FindFirstChild("GunDrop")
+    for _, v in pairs(Workspace:GetDescendants()) do
+        if (v.Name == "GunDrop" or v.Name == "Gun") and not v:IsDescendantOf(Players) then
+            return v
+        end
+    end
+    return nil
 end
 
--- Телепортация (безопасный метод с проверкой на наличие персонажа)
 local function TeleportTo(cframe)
     if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
         LocalPlayer.Character.HumanoidRootPart.CFrame = cframe
-    else
-        Rayfield:Notify({Title = "Ошибка", Content = "Твой персонаж еще не загрузился!", Duration = 3})
     end
 end
 
--- Цикл для ESP (Только Убийца и Шериф)
-RunService.RenderStepped:Connect(function()
-    if not EspEnabled then 
-        for _, pl in pairs(Players:GetPlayers()) do
-            if pl.Character and pl.Character:FindFirstChild("Highlight") then
-                pl.Character.Highlight:Destroy()
+local function FlingPlayer(targetPlayer)
+    local Character = targetPlayer.Character
+    if Character and Character:FindFirstChild("HumanoidRootPart") then
+        local HumanoidRootPart = Character.HumanoidRootPart
+        local FlingForce = Instance.new("BodyVelocity")
+        FlingForce.Velocity = Vector3.new(math.random(200, 500), 500, math.random(200, 500))
+        FlingForce.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+        FlingForce.Parent = HumanoidRootPart
+        wait(0.2)
+        FlingForce:Destroy()
+    end
+end
+
+-- Fly Logic
+local function ToggleFly(enabled)
+    local RootPart = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if not RootPart then return end
+    if enabled then
+        local BV = Instance.new("BodyVelocity", RootPart); BV.Name = "FlightVelocity"; BV.MaxForce = Vector3.new(9e9, 9e9, 9e9); BV.Velocity = Vector3.new(0,0,0)
+        local BG = Instance.new("BodyGyro", RootPart); BG.Name = "FlightGyro"; BG.MaxTorque = Vector3.new(9e9, 9e9, 9e9); BG.P = 9e4; BG.CFrame = RootPart.CFrame
+        RunService.RenderStepped:Connect(function()
+            if FlyEnabled then
+                local Dir = Vector3.new(0,0,0)
+                if UserInputService:IsKeyDown(Enum.KeyCode.W) then Dir = Dir + Workspace.CurrentCamera.CFrame.LookVector end
+                if UserInputService:IsKeyDown(Enum.KeyCode.S) then Dir = Dir - Workspace.CurrentCamera.CFrame.LookVector end
+                if UserInputService:IsKeyDown(Enum.KeyCode.A) then Dir = Dir - Workspace.CurrentCamera.CFrame.RightVector end
+                if UserInputService:IsKeyDown(Enum.KeyCode.D) then Dir = Dir + Workspace.CurrentCamera.CFrame.RightVector end
+                RootPart.FlightVelocity.Velocity = Dir * FlySpeed
+                RootPart.FlightGyro.CFrame = Workspace.CurrentCamera.CFrame
+            end
+        end)
+    else
+        if RootPart:FindFirstChild("FlightVelocity") then RootPart.FlightVelocity:Destroy() end
+        if RootPart:FindFirstChild("FlightGyro") then RootPart.FlightGyro:Destroy() end
+    end
+end
+
+-- AutoFarm Loop
+spawn(function()
+    while wait(0.5) do
+        if AutoFarmEnabled then
+            local container = Workspace:FindFirstChild("Normal") and Workspace.Normal:FindFirstChild("CoinContainer")
+            if container then
+                for _, coin in pairs(container:GetChildren()) do
+                    if coin:IsA("BasePart") and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                        LocalPlayer.Character.HumanoidRootPart.CFrame = coin.CFrame
+                        wait(0.1)
+                    end
+                end
             end
         end
-        return 
     end
+end)
 
+-- =======================================================================
+-- МЕНЮ
+-- =======================================================================
+
+local VisualsTab = Window:CreateTab("Визуалы", 4483362458)
+VisualsTab:CreateToggle({Name = "ESP (Убийца/Шериф)", Callback = function(v) EspEnabled = v end})
+VisualsTab:CreateToggle({Name = "Подсветка Монет", Callback = function(v) CoinEspEnabled = v end})
+
+local TeleportTab = Window:CreateTab("Телепорты", 4483362458)
+TeleportTab:CreateButton({Name = "ТП к Убийце", Callback = function()
+    for _, pl in pairs(Players:GetPlayers()) do
+        if pl ~= LocalPlayer and GetPlayerRole(pl) == "Murderer" and pl.Character then
+            TeleportTo(pl.Character.HumanoidRootPart.CFrame * CFrame.new(0, 3, 0))
+        end
+    end
+end})
+TeleportTab:CreateButton({Name = "ТП к Пистолету", Callback = function()
+    local g = GetDroppedGun()
+    if g then TeleportTo(g:IsA("Model") and g:GetPivot() * CFrame.new(0,2,0) or g.CFrame * CFrame.new(0,2,0)) end
+end})
+TeleportTab:CreateButton({Name = "Оттолкнуть ближайшего (Fling)", Callback = function()
+    local closest, minD = nil, 15
     for _, pl in pairs(Players:GetPlayers()) do
         if pl ~= LocalPlayer and pl.Character and pl.Character:FindFirstChild("HumanoidRootPart") then
-            local role = GetPlayerRole(pl)
-            local highlight = pl.Character:FindFirstChild("Highlight")
-            
-            -- Если игрок не Убийца и не Шериф, удаляем подсветку (если она была)
-            if role ~= "Murderer" and role ~= "Sheriff" then
-                if highlight then highlight:Destroy() end
-            else
-                -- Если это Убийца или Шериф, создаем/обновляем подсветку
-                if not highlight then
-                    highlight = Instance.new("Highlight")
-                    highlight.Parent = pl.Character
-                    highlight.FillOpacity = 0.4
-                    highlight.OutlineOpacity = 1
-                end
-
-                if role == "Murderer" then
-                    highlight.FillColor = Color3.fromRGB(255, 0, 0) -- Красный для убийцы
-                    highlight.OutlineColor = Color3.fromRGB(255, 0, 0)
-                elseif role == "Sheriff" then
-                    highlight.FillColor = Color3.fromRGB(0, 0, 255) -- Синий для шерифа
-                    highlight.OutlineColor = Color3.fromRGB(0, 0, 255)
-                end
-            end
+            local dist = (pl.Character.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
+            if dist < minD then closest = pl; minD = dist end
         end
     end
-end)
+    if closest then FlingPlayer(closest) end
+end})
 
--- Цикл для Coin ESP
+local FarmTab = Window:CreateTab("Фарм и Полет", 4483362458)
+FarmTab:CreateToggle({Name = "Авто-фарм монет", Callback = function(v) AutoFarmEnabled = v end})
+FarmTab:CreateToggle({Name = "Полет (Fly)", Callback = function(v) FlyEnabled = v; ToggleFly(v) end})
+FarmTab:CreateSlider({Name = "Скорость полета", Range = {10, 200}, CurrentValue = 50, Callback = function(v) FlySpeed = v end})
+
+-- ESP Loop
 RunService.RenderStepped:Connect(function()
-    local container = Workspace:FindFirstChild("Normal") and Workspace.Normal:FindFirstChild("CoinContainer")
-    if not container or not CoinEspEnabled then 
-        if container then
-            for _, coin in pairs(container:GetChildren()) do
-                if coin:FindFirstChild("BoxHandleAdornment") then coin.BoxHandleAdornment:Destroy() end
-            end
-        end
-        return 
-    end
-
-    for _, coin in pairs(container:GetChildren()) do
-        if coin:IsA("BasePart") and not coin:FindFirstChild("BoxHandleAdornment") then
-            local box = Instance.new("BoxHandleAdornment")
-            box.Size = coin.Size
-            box.Color3 = Color3.fromRGB(255, 215, 0)
-            box.AlwaysOnTop = true
-            box.ZIndex = 5
-            box.Adornee = coin
-            box.Transparency = 0.4
-            box.Parent = coin
+    for _, pl in pairs(Players:GetPlayers()) do
+        if pl.Character then
+            local role = GetPlayerRole(pl)
+            local hl = pl.Character:FindFirstChild("Highlight")
+            if EspEnabled and (role == "Murderer" or role == "Sheriff") then
+                if not hl then hl = Instance.new("Highlight", pl.Character) end
+                hl.FillColor = (role == "Murderer" and Color3.fromRGB(255,0,0) or Color3.fromRGB(0,0,255))
+            elseif hl then hl:Destroy() end
         end
     end
 end)
 
--- Бесконечный прыжок
-game:GetService("UserInputService").JumpRequest:Connect(function()
-    if InfiniteJump and LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
-        LocalPlayer.Character:FindFirstChildOfClass("Humanoid"):ChangeState("Jumping")
-    end
-end)
-
-
--- =======================================================================
--- СОЗДАНИЕ ИНТЕРФЕЙСА (МЕНЮ)
--- =======================================================================
-
--- Вкладка "Визуалы"
-local VisualsTab = Window:CreateTab("Визуалы", 4483362458)
-
-VisualsTab:CreateToggle({
-   Name = "ESP (Только Убийца и Шериф)",
-   CurrentValue = false,
-   Flag = "esp_roles",
-   Callback = function(Value)
-      EspEnabled = Value
-   end,
-})
-
-VisualsTab:CreateToggle({
-   Name = "Подсветка Монет (Coin ESP)",
-   CurrentValue = false,
-   Flag = "esp_coins",
-   Callback = function(Value)
-      CoinEspEnabled = Value
-   end,
-})
-
--- Вкладка "Телепорты"
-local TeleportTab = Window:CreateTab("Телепорты", 4483362458)
-
-TeleportTab:CreateButton({
-   Name = "Телепорт к Убийце",
-   Callback = function()
-       local targetFound = false
-       for _, pl in pairs(Players:GetPlayers()) do
-           if pl ~= LocalPlayer and GetPlayerRole(pl) == "Murderer" then
-               if pl.Character and pl.Character:FindFirstChild("HumanoidRootPart") then
-                   -- Телепортируем чуть выше игрока (на 3 студа), чтобы не застрять в текстурах
-                   TeleportTo(pl.Character.HumanoidRootPart.CFrame * CFrame.new(0, 3, 0))
-                   targetFound = true
-                   Rayfield:Notify({Title = "Успех", Content = "Вы телепортировались к Убийце!", Duration = 3})
-                   break
-               end
-           end
-       end
-       if not targetFound then
-           Rayfield:Notify({Title = "Внимание", Content = "Убийца еще не определен или мертв.", Duration = 3})
-       end
-   end,
-})
-
-TeleportTab:CreateButton({
-   Name = "Телепорт к Пистолету Шерифа",
-   Callback = function()
-       local gun = GetDroppedGun()
-       if gun and gun:IsA("BasePart") then
-           TeleportTo(gun.CFrame * CFrame.new(0, 2, 0))
-           Rayfield:Notify({Title = "Успех", Content = "Вы телепортировались к пистолету!", Duration = 3})
-       else
-           Rayfield:Notify({Title = "Внимание", Content = "Выпавший пистолет на карте не найден (Шериф еще жив или пистолет никто не подобрал).", Duration = 3})
-       end
-   end,
-})
-
--- Вкладка "Персонаж"
-local PlayerTab = Window:CreateTab("Персонаж", 4483362458)
-
-PlayerTab:CreateSlider({
-   Name = "Скорость (WalkSpeed)",
-   Range = {16, 120},
-   Increment = 1,
-   Suffix = "скорость",
-   CurrentValue = 16,
-   Flag = "speed_slider",
-   Callback = function(Value)
-      if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
-          LocalPlayer.Character.Humanoid.WalkSpeed = Value
-      end
-   end,
-})
-
-PlayerTab:CreateToggle({
-   Name = "Бесконечный Прыжок",
-   CurrentValue = false,
-   Flag = "inf_jump",
-   Callback = function(Value)
-      InfiniteJump = Value
-   end,
-})
-
--- Уведомление о старте
-Rayfield:Notify({
-   Title = "Lordikhhh Hub",
-   Content = "Скрипт готов к использованию!",
-   Duration = 4,
-   Image = 4483362458,
-})
+Rayfield:Notify({Title = "Успешно", Content = "Lordikhhh Hub готов к работе!", Duration = 3})
