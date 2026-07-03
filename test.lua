@@ -1,5 +1,5 @@
 -- =======================================================================
--- LORDIKHHH HUB | MURDER MYSTERY 2 | FIXED FLY, SILENT AIM & NOCLIP
+-- LORDIKHHH HUB | MURDER MYSTERY 2 | PERFECT WASD FLY, SILENT AIM & NOCLIP
 -- =======================================================================
 
 local CorrectKey = "Lordikhhh"
@@ -96,7 +96,7 @@ local oldFireServer; oldFireServer = hookmetamethod(game, "__namecall", function
     return oldFireServer(self, ...)
 end)
 
--- НАДЁЖНЫЙ И ИСПРАВЛЕННЫЙ FLY (ПОЛЕТ ПО НАПРАВЛЕНИЮ КАМЕРЫ)
+-- ИСПРАВЛЕННЫЙ И ОТЗЫВЧИВЫЙ FLY НА СИСТЕМЕ ВЕКТОРОВ WASD
 local function ToggleFly(enabled)
     local Character = LocalPlayer.Character
     local RootPart = Character and Character:FindFirstChild("HumanoidRootPart")
@@ -104,57 +104,67 @@ local function ToggleFly(enabled)
     if not RootPart or not Humanoid then return end
 
     if enabled then
-        if RootPart:FindFirstChild("FlightVelocity") then RootPart.FlightVelocity:Destroy() end
-        if RootPart:FindFirstChild("FlightGyro") then RootPart.FlightGyro:Destroy() end
         if FlyConnection then FlyConnection:Disconnect() end
-
-        Humanoid:ChangeState(Enum.HumanoidStateType.Physics)
-
-        local BV = Instance.new("BodyVelocity")
+        
+        -- Создаем физический контейнер для удержания позиции
+        local BV = RootPart:FindFirstChild("FlightVelocity") or Instance.new("BodyVelocity")
         BV.Name = "FlightVelocity"
         BV.MaxForce = Vector3.new(9e9, 9e9, 9e9)
         BV.Velocity = Vector3.new(0, 0, 0)
         BV.Parent = RootPart
 
-        local BG = Instance.new("BodyGyro")
+        local BG = RootPart:FindFirstChild("FlightGyro") or Instance.new("BodyGyro")
         BG.Name = "FlightGyro"
         BG.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
-        BG.P = 1.5e4
-        BG.D = 150
+        BG.P = 2e4
+        BG.D = 100
         BG.CFrame = RootPart.CFrame
         BG.Parent = RootPart
 
+        -- Цикл мгновенного отклика на нажатия клавиш WASD
         FlyConnection = RunService.RenderStepped:Connect(function()
             if not FlyEnabled or not RootPart or not RootPart:FindFirstChild("FlightVelocity") then 
                 if FlyConnection then FlyConnection:Disconnect() end
                 return 
             end
             
+            -- Отключаем стандартное падение персонажа
             Humanoid:ChangeState(Enum.HumanoidStateType.Physics)
 
             local Camera = Workspace.CurrentCamera
             local MoveDirection = Vector3.new(0, 0, 0)
 
-            if UserInputService:IsKeyDown(Enum.KeyCode.W) then MoveDirection = MoveDirection + Camera.CFrame.LookVector end
-            if UserInputService:IsKeyDown(Enum.KeyCode.S) then MoveDirection = MoveDirection - Camera.CFrame.LookVector end
-            if UserInputService:IsKeyDown(Enum.KeyCode.A) then MoveDirection = MoveDirection - Camera.CFrame.RightVector end
-            if UserInputService:IsKeyDown(Enum.KeyCode.D) then MoveDirection = MoveDirection + Camera.CFrame.RightVector end
+            -- Сбор векторов WASD в реальном времени относительно камеры
+            if UserInputService:IsKeyDown(Enum.KeyCode.W) then 
+                MoveDirection = MoveDirection + Camera.CFrame.LookVector 
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.S) then 
+                MoveDirection = MoveDirection - Camera.CFrame.LookVector 
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.A) then 
+                MoveDirection = MoveDirection - Camera.CFrame.RightVector 
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.D) then 
+                MoveDirection = MoveDirection + Camera.CFrame.RightVector 
+            end
 
+            -- Если ни одна кнопка не нажата, персонаж мертво зависает на месте
             RootPart.FlightVelocity.Velocity = MoveDirection * FlySpeed
             RootPart.FlightGyro.CFrame = Camera.CFrame
         end)
     else
+        -- Полная очистка при выключении
         if FlyConnection then FlyConnection:Disconnect() end
         if RootPart:FindFirstChild("FlightVelocity") then RootPart.FlightVelocity:Destroy() end
         if RootPart:FindFirstChild("FlightGyro") then RootPart.FlightGyro:Destroy() end
         
+        -- Возврат стандартной гравитации и анимаций
         Humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
     end
 end
 
--- Основной цикл для обработки Ноуклипа (Сквозь стены) и ESP
+-- Цикл для обработки Ноуклипа (Сквозь стены)
 RunService.Stepped:Connect(function()
-    -- Логика Noclip
     if NoclipEnabled and LocalPlayer.Character then
         for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
             if part:IsA("BasePart") and part.CanCollide then
@@ -187,7 +197,6 @@ end)
 
 local VisualsTab = Window:CreateTab("Визуалы", 4483362458)
 VisualsTab:CreateToggle({Name = "ESP (Убийца/Шериф)", Callback = function(v) EspEnabled = v end})
-VisualsTab:CreateToggle({Name = "Подсветка Монет", Callback = function(v) CoinEspEnabled = v end})
 
 local CombatTab = Window:CreateTab("Бой", 4483362458)
 CombatTab:CreateToggle({Name = "Silent Aim (Невидимый аим)", Callback = function(v) SilentAimEnabled = v end})
@@ -214,7 +223,7 @@ end})
 
 local FarmTab = Window:CreateTab("Фарм и Полет", 4483362458)
 FarmTab:CreateToggle({Name = "Авто-фарм монет", Callback = function(v) AutoFarmEnabled = v end})
-FarmTab:CreateToggle({Name = "Полет (Fly)", Callback = function(v) FlyEnabled = v; ToggleFly(v) end})
+FarmTab:CreateToggle({Name = "Полет (Fly WASD)", Callback = function(v) FlyEnabled = v; ToggleFly(v) end})
 FarmTab:CreateSlider({Name = "Скорость полета", Range = {10, 200}, CurrentValue = 50, Callback = function(v) FlySpeed = v end})
 
 local MiscTab = Window:CreateTab("Разное", 4483362458)
