@@ -1,5 +1,5 @@
 -- =======================================================================
--- LORDIKHHH HUB | MURDER MYSTERY 2 | ULTIMATE VERSION
+-- LORDIKHHH HUB | MURDER MYSTERY 2 | ULTIMATE VERSION (SILENT AIM & CAMERA FLY)
 -- =======================================================================
 
 local CorrectKey = "Lordikhhh"
@@ -32,7 +32,9 @@ local EspEnabled = false
 local CoinEspEnabled = false
 local AutoFarmEnabled = false
 local FlyEnabled = false
+local SilentAimEnabled = false
 local FlySpeed = 50
+local FlyConnection = nil
 
 -- =======================================================================
 -- ФУНКЦИИ
@@ -76,29 +78,97 @@ local function FlingPlayer(targetPlayer)
     end
 end
 
--- Fly Logic
-local function ToggleFly(enabled)
-    local RootPart = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-    if not RootPart then return end
-    if enabled then
-        local BV = Instance.new("BodyVelocity", RootPart); BV.Name = "FlightVelocity"; BV.MaxForce = Vector3.new(9e9, 9e9, 9e9); BV.Velocity = Vector3.new(0,0,0)
-        local BG = Instance.new("BodyGyro", RootPart); BG.Name = "FlightGyro"; BG.MaxTorque = Vector3.new(9e9, 9e9, 9e9); BG.P = 9e4; BG.CFrame = RootPart.CFrame
-        RunService.RenderStepped:Connect(function()
-            if FlyEnabled then
-                local Dir = Vector3.new(0,0,0)
-                if UserInputService:IsKeyDown(Enum.KeyCode.W) then Dir = Dir + Workspace.CurrentCamera.CFrame.LookVector end
-                if UserInputService:IsKeyDown(Enum.KeyCode.S) then Dir = Dir - Workspace.CurrentCamera.CFrame.LookVector end
-                if UserInputService:IsKeyDown(Enum.KeyCode.A) then Dir = Dir - Workspace.CurrentCamera.CFrame.RightVector end
-                if UserInputService:IsKeyDown(Enum.KeyCode.D) then Dir = Dir + Workspace.CurrentCamera.CFrame.RightVector end
-                RootPart.FlightVelocity.Velocity = Dir * FlySpeed
-                RootPart.FlightGyro.CFrame = Workspace.CurrentCamera.CFrame
+-- Функция для поиска ближайшей цели для Silent Aim
+local function GetClosestTarget()
+    local ClosestPlayer = nil
+    local MaxDistance = 1000
+    local MousePos = UserInputService:GetMouseLocation()
+    
+    for _, Player in pairs(Players:GetPlayers()) do
+        if Player ~= LocalPlayer and Player.Character and Player.Character:FindFirstChild("Head") and Player.Character:FindFirstChild("Humanoid") and Player.Character.Humanoid.Health > 0 then
+            local ScreenPos, OnScreen = Workspace.CurrentCamera:WorldToViewportPoint(Player.Character.Head.Position)
+            if OnScreen then
+                local Distance = (Vector2.new(MousePos.X, MousePos.Y) - Vector2.new(ScreenPos.X, ScreenPos.Y)).Magnitude
+                if Distance < MaxDistance then
+                    MaxDistance = Distance
+                    ClosestPlayer = Player
+                end
             end
+        end
+    end
+    return ClosestPlayer
+end
+
+-- Логика полета по направлению взгляда (Camera Fly)
+local function ToggleFly(enabled)
+    local Character = LocalPlayer.Character
+    local RootPart = Character and Character:FindFirstChild("HumanoidRootPart")
+    if not RootPart then return end
+
+    if enabled then
+        if FlyConnection then FlyConnection:Disconnect() end
+
+        local BV = Instance.new("BodyVelocity")
+        BV.Name = "FlightVelocity"
+        BV.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+        BV.Velocity = Vector3.new(0, 0, 0)
+        BV.Parent = RootPart
+
+        local BG = Instance.new("BodyGyro")
+        BG.Name = "FlightGyro"
+        BG.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
+        BG.P = 1e4
+        BG.CFrame = RootPart.CFrame
+        BG.Parent = RootPart
+
+        FlyConnection = RunService.RenderStepped:Connect(function()
+            if not FlyEnabled or not RootPart or not RootPart:FindFirstChild("FlightVelocity") then 
+                if FlyConnection then FlyConnection:Disconnect() end
+                return 
+            end
+
+            local Camera = Workspace.CurrentCamera
+            local MoveDirection = Vector3.new(0, 0, 0)
+
+            local Look = Camera.CFrame.LookVector
+            local Right = Camera.CFrame.RightVector
+
+            if UserInputService:IsKeyDown(Enum.KeyCode.W) then MoveDirection = MoveDirection + Look end
+            if UserInputService:IsKeyDown(Enum.KeyCode.S) then MoveDirection = MoveDirection - Look end
+            if UserInputService:IsKeyDown(Enum.KeyCode.A) then MoveDirection = MoveDirection - Right end
+            if UserInputService:IsKeyDown(Enum.KeyCode.D) then MoveDirection = MoveDirection + Right end
+
+            RootPart.FlightVelocity.Velocity = MoveDirection * FlySpeed
+            RootPart.FlightGyro.CFrame = Camera.CFrame
         end)
     else
+        if FlyConnection then FlyConnection:Disconnect() end
         if RootPart:FindFirstChild("FlightVelocity") then RootPart.FlightVelocity:Destroy() end
         if RootPart:FindFirstChild("FlightGyro") then RootPart.FlightGyro:Destroy() end
     end
 end
+
+-- Перехват мета-методов (Хук) для работы Silent Aim
+local mt = getrawmetatable(game)
+local oldNamecall = mt.__namecall
+setreadonly(mt, false)
+
+mt.__namecall = newcclosure(function(self, ...)
+    local method = getnamecallmethod()
+    local args = {...}
+    
+    if SilentAimEnabled and method == "FireServer" and self.Name == "ShootGun" then
+        local Target = GetClosestTarget()
+        if Target and Target.Character and Target.Character:FindFirstChild("Head") then
+            args[1] = Target.Character.Head.Position
+            return self.FireServer(self, unpack(args))
+        end
+    end
+    
+    return oldNamecall(self, ...)
+end)
+
+setreadonly(mt, true)
 
 -- AutoFarm Loop
 spawn(function()
@@ -124,6 +194,9 @@ end)
 local VisualsTab = Window:CreateTab("Визуалы", 4483362458)
 VisualsTab:CreateToggle({Name = "ESP (Убийца/Шериф)", Callback = function(v) EspEnabled = v end})
 VisualsTab:CreateToggle({Name = "Подсветка Монет", Callback = function(v) CoinEspEnabled = v end})
+
+local CombatTab = Window:CreateTab("Бой (Combat)", 4483362458)
+CombatTab:CreateToggle({Name = "Silent Aim (Невидимый аим)", Callback = function(v) SilentAimEnabled = v end})
 
 local TeleportTab = Window:CreateTab("Телепорты", 4483362458)
 TeleportTab:CreateButton({Name = "ТП к Убийце", Callback = function()
