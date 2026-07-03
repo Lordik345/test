@@ -18,9 +18,7 @@ local states = {
     SpeedToggle = false, WalkSpeedVal = 100,
     ESP = false,
     Aimbot = false,
-    Aim_FOV = 150,
-    PushToggle = false,
-    PushDist = 10
+    Aim_FOV = 150
 }
 
 local menuToggles = {}
@@ -110,7 +108,7 @@ local ScrollContainer = Instance.new("ScrollingFrame")
 ScrollContainer.Size = UDim2.new(1, 0, 1, -50)
 ScrollContainer.Position = UDim2.new(0, 0, 0, 45)
 ScrollContainer.BackgroundTransparency = 1
-ScrollContainer.CanvasSize = UDim2.new(0, 0, 0, 650)
+ScrollContainer.CanvasSize = UDim2.new(0, 0, 0, 580)
 ScrollContainer.ScrollBarThickness = 4
 ScrollContainer.Parent = MainPanel
 
@@ -131,7 +129,6 @@ ToggleMenuBtn.MouseButton1Click:Connect(function()
     ToggleMenuBtn.Text = MainPanel.Visible and "CLOSE MENU" or "OPEN MENU"
 end)
 
--- [[ КНОПКИ БЫСТРОГО ДОСТУПА ]]
 local QuickAimBtn = Instance.new("TextButton")
 QuickAimBtn.Size = UDim2.new(0, 110, 0, 35)
 QuickAimBtn.Position = UDim2.new(0.05, 0, 0.05, 42)
@@ -159,6 +156,7 @@ local function updateQuickAimVisual(isActive)
         menuToggles["Включить Аимбот"].BackgroundColor3 = isActive and Color3.fromRGB(255, 0, 100) or Color3.fromRGB(50, 50, 60)
     end
 end
+
 QuickAimBtn.MouseButton1Click:Connect(function() updateQuickAimVisual(not states.Aimbot) end)
 
 local QuickFlyBtn = Instance.new("TextButton")
@@ -188,36 +186,8 @@ local function updateQuickFlyVisual(isActive)
         menuToggles["Режим полета (Fly)"].BackgroundColor3 = isActive and Color3.fromRGB(255, 0, 100) or Color3.fromRGB(50, 50, 60)
     end
 end
+
 QuickFlyBtn.MouseButton1Click:Connect(function() updateQuickFlyVisual(not states.Fly) end)
-
-local QuickPushBtn = Instance.new("TextButton")
-QuickPushBtn.Size = UDim2.new(0, 110, 0, 35)
-QuickPushBtn.Position = UDim2.new(0.05, 0, 0.05, 126)
-QuickPushBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
-QuickPushBtn.TextColor3 = Color3.fromRGB(150, 150, 150)
-QuickPushBtn.TextSize = 14
-QuickPushBtn.Font = Enum.Font.SourceSansBold
-QuickPushBtn.Text = "PUSH: OFF"
-QuickPushBtn.Visible = false
-styleElement(QuickPushBtn, 8, Color3.fromRGB(50, 50, 60))
-QuickPushBtn.Parent = ScreenGui
-
-local function updateQuickPushVisual(isActive)
-    states.PushToggle = isActive
-    if isActive then
-        QuickPushBtn.Text = "PUSH: ON"
-        QuickPushBtn.TextColor3 = Color3.fromRGB(255, 0, 100)
-        if QuickPushBtn:FindFirstChildOfClass("UIStroke") then QuickPushBtn.UIStroke.Color = Color3.fromRGB(255, 0, 100) end
-    else
-        QuickPushBtn.Text = "PUSH: OFF"
-        QuickPushBtn.TextColor3 = Color3.fromRGB(150, 150, 150)
-        if QuickPushBtn:FindFirstChildOfClass("UIStroke") then QuickPushBtn.UIStroke.Color = Color3.fromRGB(50, 50, 60) end
-    end
-    if menuToggles["Отталкивать врагов вблизи"] then
-        menuToggles["Отталкивать врагов вблизи"].BackgroundColor3 = isActive and Color3.fromRGB(255, 0, 100) or Color3.fromRGB(50, 50, 60)
-    end
-end
-QuickPushBtn.MouseButton1Click:Connect(function() updateQuickPushVisual(not states.PushToggle) end)
 
 -- [[ КОНСТРУКТОРЫ ЭЛЕМЕНТОВ МЕНЮ ]]
 local buttonY = 10
@@ -259,8 +229,6 @@ local function createToggle(name, default, callback)
             updateQuickAimVisual(active)
         elseif name == "Режим полета (Fly)" then
             updateQuickFlyVisual(active)
-        elseif name == "Отталкивать врагов вблизи" then
-            updateQuickPushVisual(active)
         else
             callback(active)
         end
@@ -348,8 +316,6 @@ createToggle("Режим полета (Fly)", states.Fly, function(val) states.F
 createToggle("Полет сквозь стены (Noclip)", states.FlyNoclip, function(val) states.FlyNoclip = val end)
 createSlider("Скорость полета", 10, 200, states.FlySpeed, function(val) states.FlySpeed = val end)
 createToggle("ESP: Мардер и Шериф", states.ESP, function(val) states.ESP = val end)
-createToggle("Отталкивать врагов вблизи", states.PushToggle, function(val) states.PushToggle = val end)
-createSlider("Дистанция отталкивания", 5, 30, states.PushDist, function(val) states.PushDist = val end)
 
 -- [[ ЛОГИКА КЛЮЧА ]]
 CheckKeyBtn.MouseButton1Click:Connect(function()
@@ -359,7 +325,6 @@ CheckKeyBtn.MouseButton1Click:Connect(function()
         ToggleMenuBtn.Visible = true
         QuickAimBtn.Visible = true
         QuickFlyBtn.Visible = true
-        QuickPushBtn.Visible = true
     else
         KeyInput.Text = ""
         KeyInput.PlaceholderText = "НЕВЕРНЫЙ КЛЮЧ!"
@@ -488,22 +453,48 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- [[ ЛОГИКА ФЛАЯ, NOCLIP И ОТТАЛКИВАНИЯ ]]
+-- [[ ЛОГИКА ФЛАЯ С НАСТРОЙКОЙ СКОРОСТИ И NOCLIP ]]
 local FlyBV, FlyBG
 RunService.RenderStepped:Connect(function()
-    local char = LocalPlayer.Character
-    local root = char and char:FindFirstChild("HumanoidRootPart")
-    local hum = char and char:FindFirstChildOfClass("Humanoid")
-    
-    if not root or not hum then return end
-    
-    -- Обработка Полета
-    if states.Fly then
-        if not FlyBV or FlyBV.Parent ~= root then 
-            FlyBV = Instance.new("BodyVelocity")
-            FlyBV.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-            FlyBV.Parent = root
+    pcall(function()
+        local char = LocalPlayer.Character
+        local root = char and char:FindFirstChild("HumanoidRootPart")
+        local hum = char and char:FindFirstChildOfClass("Humanoid")
+        
+        if states.Fly and root and hum then
+            if not FlyBV or FlyBV.Parent ~= root then 
+                FlyBV = Instance.new("BodyVelocity", root) 
+                FlyBV.MaxForce = Vector3.new(math.huge, math.huge, math.huge) 
+            end
+            if not FlyBG or FlyBG.Parent ~= root then 
+                FlyBG = Instance.new("BodyGyro", root) 
+                FlyBG.P = 9e4 
+                FlyBG.MaxTorque = Vector3.new(math.huge, math.huge, math.huge) 
+            end
+            
+            FlyBG.CFrame = Camera.CFrame
+            local moveDir = hum.MoveDirection
+            
+            if moveDir.Magnitude > 0 then
+                local lookVector = Camera.CFrame.LookVector
+                local rightVector = Camera.CFrame.RightVector
+                local localX = moveDir:Dot(Camera.CFrame.RightVector)
+                local localZ = moveDir:Dot(Camera.CFrame.LookVector)
+                FlyBV.Velocity = ((lookVector * localZ) + (rightVector * localX)).Unit * states.FlySpeed
+            else
+                FlyBV.Velocity = Vector3.new(0, 0, 0)
+            end
+            
+            if states.FlyNoclip then
+                for _, part in pairs(char:GetDescendants()) do
+                    if part:IsA("BasePart") and part.CanCollide then
+                        part.CanCollide = false
+                    end
+                end
+            end
+        else
+            if FlyBV then FlyBV:Destroy() FlyBV = nil end
+            if FlyBG then FlyBG:Destroy() FlyBG = nil end
         end
-        if not FlyBG or FlyBG.Parent ~= root then
-            FlyBG = Instance.new("BodyGyro")
-            FlyBG.MaxTorque = Vector3.new(math.huge, math.hug
+    end)
+end)
