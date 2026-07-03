@@ -11,7 +11,6 @@ local CORRECT_KEY = "Lordikhhh"
 -- [[ НАСТРОЙКИ ]]
 local Smoothness = 0.15 
 local AimPart = "Head"
-local pushedPlayers = {} -- Память для триггера отталкивания
 
 local states = { 
     Fly = false, FlySpeed = 60, FlyNoclip = false,
@@ -20,8 +19,8 @@ local states = {
     ESP = false,
     Aimbot = false,
     Aim_FOV = 150,
-    PushToggle = false, -- Включение отталкивания
-    PushDist = 10       -- Дистанция для триггера отталкивания
+    PushToggle = false,
+    PushDist = 10
 }
 
 local menuToggles = {}
@@ -132,7 +131,7 @@ ToggleMenuBtn.MouseButton1Click:Connect(function()
     ToggleMenuBtn.Text = MainPanel.Visible and "CLOSE MENU" or "OPEN MENU"
 end)
 
--- [[ КНОПКИ БЫСТРОГО ДОСТУПА НА ЭКРАНЕ ]]
+-- [[ КНОПКИ БЫСТРОГО ДОСТУПА ]]
 local QuickAimBtn = Instance.new("TextButton")
 QuickAimBtn.Size = UDim2.new(0, 110, 0, 35)
 QuickAimBtn.Position = UDim2.new(0.05, 0, 0.05, 42)
@@ -191,7 +190,6 @@ local function updateQuickFlyVisual(isActive)
 end
 QuickFlyBtn.MouseButton1Click:Connect(function() updateQuickFlyVisual(not states.Fly) end)
 
--- НАПАТЧЕННАЯ КНОПКА ДЛЯ ОТТАЛКИВАНИЯ НА ЭКРАНЕ
 local QuickPushBtn = Instance.new("TextButton")
 QuickPushBtn.Size = UDim2.new(0, 110, 0, 35)
 QuickPushBtn.Position = UDim2.new(0.05, 0, 0.05, 126)
@@ -220,7 +218,6 @@ local function updateQuickPushVisual(isActive)
     end
 end
 QuickPushBtn.MouseButton1Click:Connect(function() updateQuickPushVisual(not states.PushToggle) end)
-
 
 -- [[ КОНСТРУКТОРЫ ЭЛЕМЕНТОВ МЕНЮ ]]
 local buttonY = 10
@@ -491,15 +488,22 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- [[ ЛОГИКА ФЛАЯ С НАСТРОЙКОЙ СКОРОСТИ И NOCLIP ]]
+-- [[ ЛОГИКА ФЛАЯ, NOCLIP И ОТТАЛКИВАНИЯ ]]
 local FlyBV, FlyBG
 RunService.RenderStepped:Connect(function()
-    pcall(function()
-        local char = LocalPlayer.Character
-        local root = char and char:FindFirstChild("HumanoidRootPart")
-        local hum = char and char:FindFirstChildOfClass("Humanoid")
-        
-        if states.Fly and root and hum then
-            if not FlyBV or FlyBV.Parent ~= root then 
-                FlyBV = Instance.new("BodyVelocity", root) 
-                FlyBV.MaxForce = Vector3.new(math.huge, math.huge, math.h
+    local char = LocalPlayer.Character
+    local root = char and char:FindFirstChild("HumanoidRootPart")
+    local hum = char and char:FindFirstChildOfClass("Humanoid")
+    
+    if not root or not hum then return end
+    
+    -- Обработка Полета
+    if states.Fly then
+        if not FlyBV or FlyBV.Parent ~= root then 
+            FlyBV = Instance.new("BodyVelocity")
+            FlyBV.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+            FlyBV.Parent = root
+        end
+        if not FlyBG or FlyBG.Parent ~= root then
+            FlyBG = Instance.new("BodyGyro")
+            FlyBG.MaxTorque = Vector3.new(math.huge, math.hug
