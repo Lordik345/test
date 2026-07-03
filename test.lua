@@ -1,7 +1,7 @@
--- [[ 99 NIGHTS LITE HUB: WOOD & METAL EDITION ]]
+-- [[ 99 NIGHTS LITE HUB: SAFE AI & AUTO-FARM ]]
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
+local HttpService = game:GetService("HttpService")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
@@ -13,7 +13,10 @@ local states = {
     ChildrenESP = false,
     BastionESP = false,
     Fly = false,
-    AutoFarmTree = false, -- Новая функция фарминга
+    AutoFarmTree = false,
+    AutoFarmMetal = false,
+    AutoFarmRes = false,
+    AutoFarmFood = false,
     FlySpeed = 50
 }
 
@@ -102,48 +105,83 @@ CreatorLabel.Parent = WelcomeFrame
 
 -- [[ ГЛАВНОЕ МЕНЮ ]]
 local MainPanel = Instance.new("Frame")
-MainPanel.Size = UDim2.new(0, 320, 0, 460)
-MainPanel.Position = UDim2.new(0.5, -160, 0.3, -230)
+MainPanel.Size = UDim2.new(0, 340, 0, 500)
+MainPanel.Position = UDim2.new(0.5, -170, 0.3, -250)
 MainPanel.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
 MainPanel.Visible = false
 styleElement(MainPanel, 12)
 MainPanel.Parent = ScreenGui
 
 local MainTitle = Instance.new("TextLabel")
-MainTitle.Size = UDim2.new(1, 0, 0, 40)
+MainTitle.Size = UDim2.new(1, 0, 0, 35)
 MainTitle.BackgroundTransparency = 1
 MainTitle.Text = "99 NIGHTS LITE HUB"
 MainTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
-MainTitle.TextSize = 14
+MainTitle.TextSize = 13
 MainTitle.Font = Enum.Font.GothamBold
 MainTitle.Parent = MainPanel
 
+local TabBar = Instance.new("Frame", MainPanel)
+TabBar.Size = UDim2.new(1, -20, 0, 30)
+TabBar.Position = UDim2.new(0, 10, 0, 35)
+TabBar.BackgroundTransparency = 1
+
+local FunctionsTabBtn = Instance.new("TextButton", TabBar)
+FunctionsTabBtn.Size = UDim2.new(0.5, -5, 1, 0)
+FunctionsTabBtn.BackgroundColor3 = Color3.fromRGB(255, 0, 100)
+FunctionsTabBtn.Text = "Функции"
+FunctionsTabBtn.TextColor3 = Color3.new(1,1,1)
+FunctionsTabBtn.Font = Enum.Font.GothamBold
+FunctionsTabBtn.TextSize = 11
+styleElement(FunctionsTabBtn, 5)
+
+local AiTabBtn = Instance.new("TextButton", TabBar)
+AiTabBtn.Size = UDim2.new(0.5, -5, 1, 0)
+AiTabBtn.Position = UDim2.new(0.5, 5, 0, 0)
+AiTabBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+AiTabBtn.Text = "🤖 ИИ Чат"
+AiTabBtn.TextColor3 = Color3.new(0.8,0.8,0.8)
+AiTabBtn.Font = Enum.Font.GothamBold
+AiTabBtn.TextSize = 11
+styleElement(AiTabBtn, 5)
+
+local FunctionsPage = Instance.new("Frame", MainPanel)
+FunctionsPage.Size = UDim2.new(1, 0, 1, -75)
+FunctionsPage.Position = UDim2.new(0, 0, 0, 75)
+FunctionsPage.BackgroundTransparency = 1
+
+local AiPage = Instance.new("Frame", MainPanel)
+AiPage.Size = UDim2.new(1, 0, 1, -75)
+AiPage.Position = UDim2.new(0, 0, 0, 75)
+AiPage.BackgroundTransparency = 1
+AiPage.Visible = false
+
 local SettingsScroll = Instance.new("ScrollingFrame")
-SettingsScroll.Size = UDim2.new(1, 0, 0, 290)
-SettingsScroll.Position = UDim2.new(0, 0, 0, 40)
+SettingsScroll.Size = UDim2.new(1, 0, 0, 310)
+SettingsScroll.Position = UDim2.new(0, 0, 0, 0)
 SettingsScroll.BackgroundTransparency = 1
-SettingsScroll.CanvasSize = UDim2.new(0, 0, 0, 460) -- Немного увеличили высоту прокрутки под новые кнопки
+SettingsScroll.CanvasSize = UDim2.new(0, 0, 0, 520)
 SettingsScroll.ScrollBarThickness = 2
-SettingsScroll.Parent = MainPanel
+SettingsScroll.Parent = FunctionsPage
 
 local TpSectionTitle = Instance.new("TextLabel")
 TpSectionTitle.Size = UDim2.new(1, 0, 0, 20)
-TpSectionTitle.Position = UDim2.new(0, 15, 0, 335)
+TpSectionTitle.Position = UDim2.new(0, 15, 0, 315)
 TpSectionTitle.BackgroundTransparency = 1
 TpSectionTitle.Text = "ТЕЛЕПОРТ К ДЕТЯМ:"
 TpSectionTitle.TextColor3 = Color3.fromRGB(255, 0, 100)
 TpSectionTitle.TextSize = 11
 TpSectionTitle.Font = Enum.Font.GothamBold
 TpSectionTitle.TextXAlignment = Enum.TextXAlignment.Left
-TpSectionTitle.Parent = MainPanel
+TpSectionTitle.Parent = FunctionsPage
 
 local TpButtonsContainer = Instance.new("ScrollingFrame")
-TpButtonsContainer.Size = UDim2.new(1, 0, 0, 95)
-TpButtonsContainer.Position = UDim2.new(0, 0, 0, 355)
+TpButtonsContainer.Size = UDim2.new(1, 0, 0, 85)
+TpButtonsContainer.Position = UDim2.new(0, 0, 0, 335)
 TpButtonsContainer.BackgroundTransparency = 1
 TpButtonsContainer.CanvasSize = UDim2.new(0, 0, 0, 100)
 TpButtonsContainer.ScrollBarThickness = 2
-TpButtonsContainer.Parent = MainPanel
+TpButtonsContainer.Parent = FunctionsPage
 
 local UIListLayout = Instance.new("UIListLayout")
 UIListLayout.Parent = TpButtonsContainer
@@ -168,52 +206,149 @@ ToggleMenuBtn.MouseButton1Click:Connect(function()
     ToggleMenuBtn.Text = MainPanel.Visible and "СКРЫТЬ" or "МЕНЮ"
 end)
 
--- [[ ЛОГИКА АВТО-РУБКИ ДЕРЕВА ]]
-local function startAutoFarmTree()
+FunctionsTabBtn.MouseButton1Click:Connect(function()
+    FunctionsPage.Visible = true; AiPage.Visible = false
+    FunctionsTabBtn.BackgroundColor3 = Color3.fromRGB(255, 0, 100)
+    AiTabBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+end)
+
+AiTabBtn.MouseButton1Click:Connect(function()
+    FunctionsPage.Visible = false; AiPage.Visible = true
+    AiTabBtn.BackgroundColor3 = Color3.fromRGB(255, 0, 100)
+    FunctionsTabBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+end)
+
+-- [[ ЭЛЕМЕНТЫ ИИ ЧАТА ]]
+local AiLog = Instance.new("ScrollingFrame", AiPage)
+AiLog.Size = UDim2.new(1, -20, 0, 330)
+AiLog.Position = UDim2.new(0, 10, 0, 10)
+AiLog.BackgroundColor3 = Color3.fromRGB(10, 10, 12)
+AiLog.CanvasSize = UDim2.new(0, 0, 0, 1000)
+AiLog.ScrollBarThickness = 2
+styleElement(AiLog, 6)
+
+local AiLogLayout = Instance.new("UIListLayout", AiLog)
+AiLogLayout.Padding = UDim.new(0, 6)
+
+local AiInput = Instance.new("TextBox", AiPage)
+AiInput.Size = UDim2.new(1, -110, 0, 35)
+AiInput.Position = UDim2.new(0, 10, 0, 355)
+AiInput.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+AiInput.PlaceholderText = "Задай вопрос ИИ..."
+AiInput.Text = ""
+AiInput.TextColor3 = Color3.new(1,1,1)
+AiInput.TextSize = 11
+styleElement(AiInput, 6)
+
+local AiSendBtn = Instance.new("TextButton", AiPage)
+AiSendBtn.Size = UDim2.new(0, 80, 0, 35)
+AiSendBtn.Position = UDim2.new(1, -90, 0, 355)
+AiSendBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
+AiSendBtn.Text = "Спросить"
+AiSendBtn.TextColor3 = Color3.new(1,1,1)
+AiSendBtn.Font = Enum.Font.GothamBold
+AiSendBtn.TextSize = 11
+styleElement(AiSendBtn, 6)
+
+local function addChatLabel(text, color)
+    local lbl = Instance.new("TextLabel", AiLog)
+    lbl.Size = UDim2.new(1, -10, 0, 40)
+    lbl.BackgroundTransparency = 1
+    lbl.Text = text
+    lbl.TextColor3 = color
+    lbl.TextSize = 11
+    lbl.Font = Enum.Font.Gotham
+    lbl.TextWrapped = true
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
+    AiLog.CanvasPosition = Vector2.new(0, AiLog.AbsoluteWindowSize.Y + 1000)
+end
+
+-- ИСПОЛЬЗУЕМ 100% СОВМЕСТИМЫЙ GET ЗАПРОС С ФИЛЬТРАЦИЕЙ СТРОК
+local function requestAI(prompt)
+    if prompt == "" then return end
+    addChatLabel("Вы: " .. prompt, Color3.fromRGB(200, 200, 200))
+    AiInput.Text = ""
+    addChatLabel("ИИ: Думает...", Color3.fromRGB(255, 200, 0))
+    
     task.spawn(function()
-        while states.AutoFarmTree do
+        -- Чистый GET запрос, понятный любому клиенту роблокса
+        local cleanPrompt = HttpService:UrlEncode(prompt)
+        local url = "https://text.pollinations.ai/" .. cleanPrompt .. "?model=openai"
+        
+        local success, res = pcall(function()
+            return game:HttpGet(url)
+        end)
+        
+        local last = AiLog:GetChildren()[#AiLog:GetChildren()]
+        if last:IsA("TextLabel") and last.Text:find("Думает") then last:Destroy() end
+
+        if success and res then
+            addChatLabel("ИИ: " .. res, Color3.fromRGB(0, 255, 150))
+        else
+            addChatLabel("ИИ: Ошибка сети.", Color3.fromRGB(255, 50, 50))
+        end
+    end)
+end
+
+AiSendBtn.MouseButton1Click:Connect(function() requestAI(AiInput.Text) end)
+
+-- [[ ЛОГИКА АВТО-ФАРМА ]]
+local function startAutoFarm(stateKey, itemType)
+    task.spawn(function()
+        while states[stateKey] do
             local myRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
             if myRoot then
-                local closestTree = nil
-                local minDistance = math.huge -- Ищет по всей карте, начиная с ближайших
+                local closestTarget = nil
+                local minDistance = math.huge
 
                 for _, obj in pairs(workspace:GetDescendants()) do
-                    if obj:IsA("Model") and (obj.Name:lower():find("tree") or obj.Name:lower():find("дерев")) then
-                        -- Исключаем палатку/сданные деревья, если у них меняется имя
-                        local root = obj:FindFirstChild("HumanoidRootPart") or obj:FindFirstChildWhichIsA("BasePart")
-                        if root and not obj:FindFirstChild("Tent") and not obj:FindFirstChild("tent") then
-                            local dist = (root.Position - myRoot.Position).Magnitude
+                    local name = obj.Name:lower()
+                    local isMatch = false
+                    local prompt = obj:FindFirstChildOfClass("ProximityPrompt")
+                    local pText = prompt and (prompt.ObjectText:lower() .. prompt.ActionText:lower()) or ""
+
+                    if itemType == "tree" then
+                        if obj:IsA("Model") and (name:find("tree") or name:find("дерев")) and not obj:FindFirstChild("Tent") and not obj:FindFirstChild("tent") then
+                            isMatch = true
+                        end
+                    elseif obj:IsA("BasePart") then
+                        if itemType == "metal" and (name:find("metal") or name:find("iron") or name:find("steel") or name:find("желез") or name:find("метал") or pText:find("metal") or pText:find("iron")) then
+                            isMatch = true
+                        elseif itemType == "resources" and (name:find("wood") or name:find("gas") or name:find("coal") or name:find("fuel") or pText:find("wood") or pText:find("gas") or pText:find("coal")) then
+                            isMatch = true
+                        elseif itemType == "food" and (name:find("food") or name:find("med") or name:find("cola") or name:find("apple") or pText:find("food") or pText:find("med") or pText:find("eat")) then
+                            isMatch = true
+                        end
+                    end
+
+                    if isMatch then
+                        local targetPart = obj:IsA("BasePart") and obj or (obj:FindFirstChild("HumanoidRootPart") or obj:FindFirstChildWhichIsA("BasePart"))
+                        if targetPart then
+                            local dist = (targetPart.Position - myRoot.Position).Magnitude
                             if dist < minDistance then
                                 minDistance = dist
-                                closestTree = obj
+                                closestTarget = targetPart
                             end
                         end
                     end
                 end
 
-                if closestTree then
-                    local root = closestTree:FindFirstChild("HumanoidRootPart") or closestTree:FindFirstChildWhichIsA("BasePart")
-                    if root then
-                        -- Телепортируем игрока к дереву (чуть сбоку, чтобы сработал Prompt)
-                        myRoot.CFrame = root.CFrame * CFrame.new(0, 0, 3)
-                        task.wait(0.15) -- Короткая пауза для прогрузки
-
-                        -- Ищем и активируем ProximityPrompt рубки
-                        local prompt = closestTree:FindFirstChildWhichIsA("ProximityPrompt", true)
-                        if prompt then
-                            fireproximityprompt(prompt)
-                        end
-                    end
+                if closestTarget then
+                    myRoot.CFrame = closestTarget.CFrame * CFrame.new(0, 0, 3)
+                    task.wait(0.2)
+                    local prompt = closestTarget:FindFirstChildOfClass("ProximityPrompt") or closestTarget.Parent:FindFirstChildWhichIsA("ProximityPrompt", true)
+                    if prompt then fireproximityprompt(prompt) end
+                    task.wait(0.4)
                 end
             end
-            task.wait(0.8) -- Скорость проверки и прыжков между деревьями
+            task.wait(0.5)
         end
     end)
 end
 
 -- [[ КОНСТРУКТОРЫ КНОПОК ]]
 local buttonY = 5
-local function createToggle(name, stateKey)
+local function createToggle(name, stateKey, farmType)
     local Frame = Instance.new("Frame")
     Frame.Size = UDim2.new(0, 280, 0, 35)
     Frame.Position = UDim2.new(0, 15, 0, buttonY)
@@ -245,27 +380,9 @@ local function createToggle(name, stateKey)
         states[stateKey] = not states[stateKey]
         ToggleBtn.BackgroundColor3 = states[stateKey] and Color3.fromRGB(255, 0, 100) or Color3.fromRGB(60, 60, 70)
         ToggleBtn.Text = states[stateKey] and "ВКЛ" or "ВЫКЛ"
-        
-        -- Если включили автофарм дерева — запускаем цикл
-        if stateKey == "AutoFarmTree" and states.AutoFarmTree then
-            startAutoFarmTree()
-        end
+        if farmType and states[stateKey] then startAutoFarm(stateKey, farmType) end
     end)
     buttonY = buttonY + 40
-end
-
-local function createActionButton(name, color, callback)
-    local Btn = Instance.new("TextButton")
-    Btn.Size = UDim2.new(0, 280, 0, 32)
-    Btn.Position = UDim2.new(0, 15, 0, buttonY)
-    Btn.BackgroundColor3 = color
-    Btn.Text = name
-    Btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    Btn.TextSize = 11
-    styleElement(Btn, 6)
-    Btn.Parent = SettingsScroll
-    Btn.MouseButton1Click:Connect(callback)
-    buttonY = buttonY + 38
 end
 
 -- [[ СИСТЕМА ДЕТЕЙ ]]
@@ -346,7 +463,6 @@ end
 local function scanMap(object)
     if not object or not object.Parent then return end
     local name = object.Name:lower()
-    
     if LocalPlayer.Character and object:IsDescendantOf(LocalPlayer.Character) then return end
     if object:FindFirstChild("Tent") or object:FindFirstChild("tent") or name:find("tent") or name:find("палатк") then return end
 
@@ -357,7 +473,6 @@ local function scanMap(object)
 
     local prompt = object:FindFirstChildOfClass("ProximityPrompt") or object:FindFirstChildOfClass("ClickDetector")
     local pText = prompt and (prompt:IsA("ProximityPrompt") and prompt.ObjectText:lower() .. prompt.ActionText:lower() or "") or ""
-    
     local hasChildName = name:find("child") or name:find("kid") or name:find("baby") or name:find("ребенок")
     local hasQuestPrompt = pText:find("child") or pText:find("ребенок") or pText:find("спасти") or pText:find("rescue")
 
@@ -380,39 +495,9 @@ for _, desc in pairs(workspace:GetDescendants()) do scanMap(desc) end
 
 RunService.Heartbeat:Connect(function()
     for obj, _ in pairs(childrenData) do
-        if not obj or not obj.Parent or obj:FindFirstChild("Tent") or obj:FindFirstChild("tent") then
-            removeChildFromMenu(obj)
-        end
+        if not obj or not obj.Parent or obj:FindFirstChild("Tent") or obj:FindFirstChild("tent") then removeChildFromMenu(obj) end
     end
 end)
-
--- [[ МАГНИТ ВЕЩЕЙ ]]
-local function teleportItemsToMe(itemType)
-    local myRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-    if not myRoot then return end
-
-    for _, desc in pairs(workspace:GetDescendants()) do
-        if desc:IsA("BasePart") then
-            local name = desc.Name:lower()
-            local prompt = desc:FindFirstChildOfClass("ProximityPrompt") or desc:FindFirstChildOfClass("ClickDetector")
-            local pText = prompt and (prompt:IsA("ProximityPrompt") and prompt.ObjectText:lower() .. prompt.ActionText:lower() or "") or ""
-            
-            local isTarget = false
-            if itemType == "resources" and (name:find("wood") or name:find("gas") or name:find("coal") or name:find("fuel") or pText:find("wood") or pText:find("gas") or pText:find("coal")) then
-                isTarget = true
-            elseif itemType == "food" and (name:find("food") or name:find("med") or name:find("cola") or name:find("apple") or pText:find("food") or pText:find("med") or pText:find("eat")) then
-                isTarget = true
-            elseif itemType == "metal" and (name:find("metal") or name:find("iron") or name:find("steel") or name:find("желез") or name:find("метал") or pText:find("metal") or pText:find("iron")) then
-                isTarget = true
-            end
-            
-            if isTarget then
-                desc.Anchored = false
-                desc.CFrame = myRoot.CFrame * CFrame.new(0, -1, -3)
-            end
-        end
-    end
-end
 
 -- [[ ЛИТЕ-ПОЛЕТ ]]
 local FlyBV
@@ -424,40 +509,10 @@ RunService.RenderStepped:Connect(function()
             FlyBV = Instance.new("BodyVelocity", root)
             FlyBV.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
         end
-        local moveDir = hum.MoveDirection
-        if moveDir.Magnitude > 0 then
-            FlyBV.Velocity = Camera.CFrame.LookVector * states.FlySpeed
-        else
-            FlyBV.Velocity = Vector3.new(0, 0, 0)
-        end
+        if hum.MoveDirection.Magnitude > 0 then FlyBV.Velocity = Camera.CFrame.LookVector * states.FlySpeed else FlyBV.Velocity = Vector3.new(0, 0, 0) end
     else
         if FlyBV then FlyBV:Destroy() FlyBV = nil end
     end
 end)
 
--- [[ ИНИЦИАЛИЗАЦИЯ КНОПОК ]]
-createToggle("ESP на Лут", "ItemsESP")
-createToggle("ESP на Детей", "ChildrenESP")
-createToggle("ESP на Бастион", "BastionESP")
-createToggle("Включить Полет", "Fly")
-createToggle("🌳 Авто-фарм дерева", "AutoFarmTree") -- Новый тумблер в меню
-
-createActionButton("🔥 Стянуть ресурсы (Уголь/Дрова/Бензин)", Color3.fromRGB(200, 100, 0), function() teleportItemsToMe("resources") end)
-createActionButton("🍎 Стянуть припасы (Еда/Аптечки)", Color3.fromRGB(50, 150, 50), function() teleportItemsToMe("food") end)
-createActionButton("⚙️ Стянуть металл", Color3.fromRGB(120, 130, 140), function() teleportItemsToMe("metal") end)
-
--- ЛОГИКА ПЕРЕХОДОВ МЕЖДУ ОКНАМИ
-CheckKeyBtn.MouseButton1Click:Connect(function()
-    if KeyInput.Text == CORRECT_KEY then
-        KeyFrame:Destroy()
-        WelcomeFrame.Visible = true
-        task.wait(2.5)
-        WelcomeFrame:Destroy()
-        MainPanel.Visible = true
-        ToggleMenuBtn.Visible = true
-    else
-        KeyInput.Text = "НЕВЕРНО!"
-        task.wait(1)
-        KeyInput.Text = ""
-    end
-end)
+-- [[
