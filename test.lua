@@ -1,4 +1,4 @@
--- [[ 99 NIGHTS ULTRA-LIGHT LITE HUB ]]
+-- [[ 99 NIGHTS LITE HUB: WELCOME SCREEN EDITION ]]
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -16,8 +16,7 @@ local states = {
     FlySpeed = 50
 }
 
--- Выводим напрямую в PlayerGui (защита игры мимо)
-local UI_NAME = "Nights99_Lite_Hub"
+local UI_NAME = "Nights99_Welcome_Hub"
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 if PlayerGui:FindFirstChild(UI_NAME) then PlayerGui[UI_NAME]:Destroy() end
 
@@ -68,6 +67,37 @@ CheckKeyBtn.Text = "Войти"
 CheckKeyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 styleElement(CheckKeyBtn, 6)
 CheckKeyBtn.Parent = KeyFrame
+
+-- [[ ПРОМЕЖУТОЧНОЕ ОКНО ПРИВЕТСТВИЯ ]]
+local WelcomeFrame = Instance.new("Frame")
+WelcomeFrame.Size = UDim2.new(0, 300, 0, 130)
+WelcomeFrame.Position = UDim2.new(0.5, -150, 0.4, -65)
+WelcomeFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+WelcomeFrame.Visible = false
+styleElement(WelcomeFrame, 12)
+WelcomeFrame.Parent = ScreenGui
+
+local WelcomeTitle = Instance.new("TextLabel")
+WelcomeTitle.Size = UDim2.new(1, 0, 0, 50)
+WelcomeTitle.Position = UDim2.new(0, 0, 0, 15)
+WelcomeTitle.BackgroundTransparency = 1
+WelcomeTitle.Text = "Спасибо за использование скрипта!"
+WelcomeTitle.TextColor3 = Color3.fromRGB(0, 255, 150)
+WelcomeTitle.TextSize = 14
+WelcomeTitle.Font = Enum.Font.GothamBold
+WelcomeTitle.TextWrapped = true
+WelcomeTitle.Parent = WelcomeFrame
+
+local CreatorLabel = Instance.new("TextLabel")
+CreatorLabel.Size = UDim2.new(1, 0, 0, 30)
+CreatorLabel.Position = UDim2.new(0, 0, 0, 65)
+CreatorLabel.BackgroundTransparency = 1
+CreatorLabel.Text = "Создатель: Lordikhhh"
+CreatorLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+CreatorLabel.TextSize = 13
+CreatorLabel.Font = Enum.Font.Gotham
+CreatorLabel.Parent = WelcomeFrame
+
 
 -- [[ ГЛАВНОЕ МЕНЮ ]]
 local MainPanel = Instance.new("Frame")
@@ -224,7 +254,7 @@ local function addChildToMenu(object, rootPart)
     end)
 end
 
--- [[ ОБЛЕГЧЕННЫЙ ESP (БЕЗ HIGHLIGHT) ]]
+-- [[ ОБЛЕГЧЕННЫЙ ESP ]]
 local function createObjectESP(object, color, nameText, stateKey)
     if not object:IsA("Model") and not object:IsA("BasePart") then return end
     if object:FindFirstChild("NightsESP_Gui") then return end
@@ -251,7 +281,8 @@ local function createObjectESP(object, color, nameText, stateKey)
 
     task.spawn(function()
         while object and object.Parent and bGui do
-            if states[stateKey] and targetPart then
+            local isTentNow = object:FindFirstChild("Tent") or object:FindFirstChild("tent")
+            if states[stateKey] and targetPart and not isTentNow then
                 local dist = math.floor((targetPart.Position - Camera.CFrame.Position).Magnitude)
                 label.Text = nameText .. " [" .. dist .. "m]"
                 bGui.Enabled = true
@@ -268,6 +299,7 @@ local function scanMap(object)
     local name = object.Name:lower()
     
     if LocalPlayer.Character and object:IsDescendantOf(LocalPlayer.Character) then return end
+    if object:FindFirstChild("Tent") or object:FindFirstChild("tent") or name:find("tent") or name:find("палатк") then return end
 
     if name:find("bastion") or name:find("diamond") or name:find("бастион") then
         createObjectESP(object, Color3.fromRGB(0, 191, 255), "💎 БАСТИОН", "BastionESP")
@@ -297,7 +329,15 @@ end
 workspace.DescendantAdded:Connect(scanMap)
 for _, desc in pairs(workspace:GetDescendants()) do scanMap(desc) end
 
--- [[ МАГНИТ ВЕЩЕЙ (БЕЗ ДВИЖЕНИЯ ИГРОКА) ]]
+RunService.Heartbeat:Connect(function()
+    for obj, _ in pairs(childrenData) do
+        if not obj or not obj.Parent or obj:FindFirstChild("Tent") or obj:FindFirstChild("tent") then
+            removeChildFromMenu(obj)
+        end
+    end
+end)
+
+-- [[ МАГНИТ ВЕЩЕЙ ]]
 local function teleportItemsToMe(itemType)
     local myRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
     if not myRoot then return end
@@ -353,9 +393,18 @@ createToggle("Включить Полет", "Fly")
 createActionButton("🔥 Стянуть ресурсы (Уголь/Дрова/Бензин)", Color3.fromRGB(200, 100, 0), function() teleportItemsToMe("resources") end)
 createActionButton("🍎 Стянуть припасы (Еда/Аптечки)", Color3.fromRGB(50, 150, 50), function() teleportItemsToMe("food") end)
 
+-- ЛОГИКА ПЕРЕХОДОВ МЕЖДУ ОКНАМИ
 CheckKeyBtn.MouseButton1Click:Connect(function()
     if KeyInput.Text == CORRECT_KEY then
+        -- 1. Удаляем окно ключа
         KeyFrame:Destroy()
+        
+        -- 2. Показываем окно благодарности
+        WelcomeFrame.Visible = true
+        
+        -- 3. Ждем 2.5 секунды, удаляем его и открываем чит-меню
+        task.wait(2.5)
+        WelcomeFrame:Destroy()
         MainPanel.Visible = true
         ToggleMenuBtn.Visible = true
     else
