@@ -9,22 +9,21 @@ local Camera = workspace.CurrentCamera
 local CORRECT_KEY = "Lordikhhh"
 
 -- [[ НАСТРОЙКИ ]]
-local Smoothness = 0.15 
+local Smoothness = 0.15 -- Скорость наводки аима (чем выше, тем быстрее)
 local AimPart = "Head"
 
 local states = { 
-    Fly = false, FlySpeed = 60, FlyNoclip = false,
+    Fly = false, FlySpeed = 60,
     Invis = false, 
     SpeedToggle = false, WalkSpeedVal = 100,
     ESP = false,
     Aimbot = false,
-    Aim_FOV = 150,
-    PushToggle = false,
-    PushDist = 10
+    Aim_FOV = 150
 }
 
 local menuToggles = {}
 
+-- Полная очистка старых интерфейсов перед запуском
 if CoreGui:FindFirstChild("DeltaMegaMenu") then CoreGui.DeltaMegaMenu:Destroy() end
 
 local ScreenGui = Instance.new("ScreenGui")
@@ -100,7 +99,7 @@ MainPanel.Parent = ScreenGui
 local MainTitle = Instance.new("TextLabel")
 MainTitle.Size = UDim2.new(1, 0, 0, 45)
 MainTitle.BackgroundTransparency = 1
-MainTitle.Text = "LORD HUB MM2 VIP"
+MainTitle.Text = "LORD HUB VIP v5.0"
 MainTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
 MainTitle.TextSize = 14
 MainTitle.Font = Enum.Font.GothamBold
@@ -110,12 +109,13 @@ local ScrollContainer = Instance.new("ScrollingFrame")
 ScrollContainer.Size = UDim2.new(1, 0, 1, -50)
 ScrollContainer.Position = UDim2.new(0, 0, 0, 45)
 ScrollContainer.BackgroundTransparency = 1
-ScrollContainer.CanvasSize = UDim2.new(0, 0, 0, 650)
+ScrollContainer.CanvasSize = UDim2.new(0, 0, 0, 500) -- Увеличили размер под новые слайдеры
 ScrollContainer.ScrollBarThickness = 4
 ScrollContainer.Parent = MainPanel
 
+-- Кнопка скрыть/показать меню
 local ToggleMenuBtn = Instance.new("TextButton")
-ToggleMenuBtn.Size = UDim2.new(0, 110, 0, 35)
+ToggleMenuBtn.Size = UDim2.new(0, 90, 0, 35)
 ToggleMenuBtn.Position = UDim2.new(0.05, 0, 0.05, 0)
 ToggleMenuBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
 ToggleMenuBtn.TextColor3 = Color3.fromRGB(255, 0, 100)
@@ -131,9 +131,9 @@ ToggleMenuBtn.MouseButton1Click:Connect(function()
     ToggleMenuBtn.Text = MainPanel.Visible and "CLOSE MENU" or "OPEN MENU"
 end)
 
--- [[ КНОПКИ БЫСТРОГО ДОСТУПА ]]
+-- [[ БЫСТРАЯ КНОПКА АИМА НА ЭКРАНЕ ]]
 local QuickAimBtn = Instance.new("TextButton")
-QuickAimBtn.Size = UDim2.new(0, 110, 0, 35)
+QuickAimBtn.Size = UDim2.new(0, 90, 0, 35)
 QuickAimBtn.Position = UDim2.new(0.05, 0, 0.05, 42)
 QuickAimBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
 QuickAimBtn.TextColor3 = Color3.fromRGB(150, 150, 150)
@@ -149,20 +149,22 @@ local function updateQuickAimVisual(isActive)
     if isActive then
         QuickAimBtn.Text = "AIM: ON"
         QuickAimBtn.TextColor3 = Color3.fromRGB(255, 0, 100)
-        if QuickAimBtn:FindFirstChildOfClass("UIStroke") then QuickAimBtn.UIStroke.Color = Color3.fromRGB(255, 0, 100) end
+        QuickAimBtn.UIStroke.Color = Color3.fromRGB(255, 0, 100)
     else
         QuickAimBtn.Text = "AIM: OFF"
         QuickAimBtn.TextColor3 = Color3.fromRGB(150, 150, 150)
-        if QuickAimBtn:FindFirstChildOfClass("UIStroke") then QuickAimBtn.UIStroke.Color = Color3.fromRGB(50, 50, 60) end
+        QuickAimBtn.UIStroke.Color = Color3.fromRGB(50, 50, 60)
     end
     if menuToggles["Включить Аимбот"] then
         menuToggles["Включить Аимбот"].BackgroundColor3 = isActive and Color3.fromRGB(255, 0, 100) or Color3.fromRGB(50, 50, 60)
     end
 end
+
 QuickAimBtn.MouseButton1Click:Connect(function() updateQuickAimVisual(not states.Aimbot) end)
 
+-- [[ БЫСТРАЯ КНОПКА ФЛАЯ НА ЭКРАНЕ ]]
 local QuickFlyBtn = Instance.new("TextButton")
-QuickFlyBtn.Size = UDim2.new(0, 110, 0, 35)
+QuickFlyBtn.Size = UDim2.new(0, 90, 0, 35)
 QuickFlyBtn.Position = UDim2.new(0.05, 0, 0.05, 84)
 QuickFlyBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
 QuickFlyBtn.TextColor3 = Color3.fromRGB(150, 150, 150)
@@ -178,46 +180,18 @@ local function updateQuickFlyVisual(isActive)
     if isActive then
         QuickFlyBtn.Text = "FLY: ON"
         QuickFlyBtn.TextColor3 = Color3.fromRGB(255, 0, 100)
-        if QuickFlyBtn:FindFirstChildOfClass("UIStroke") then QuickFlyBtn.UIStroke.Color = Color3.fromRGB(255, 0, 100) end
+        QuickFlyBtn.UIStroke.Color = Color3.fromRGB(255, 0, 100)
     else
         QuickFlyBtn.Text = "FLY: OFF"
         QuickFlyBtn.TextColor3 = Color3.fromRGB(150, 150, 150)
-        if QuickFlyBtn:FindFirstChildOfClass("UIStroke") then QuickFlyBtn.UIStroke.Color = Color3.fromRGB(50, 50, 60) end
+        QuickFlyBtn.UIStroke.Color = Color3.fromRGB(50, 50, 60)
     end
     if menuToggles["Режим полета (Fly)"] then
         menuToggles["Режим полета (Fly)"].BackgroundColor3 = isActive and Color3.fromRGB(255, 0, 100) or Color3.fromRGB(50, 50, 60)
     end
 end
+
 QuickFlyBtn.MouseButton1Click:Connect(function() updateQuickFlyVisual(not states.Fly) end)
-
-local QuickPushBtn = Instance.new("TextButton")
-QuickPushBtn.Size = UDim2.new(0, 110, 0, 35)
-QuickPushBtn.Position = UDim2.new(0.05, 0, 0.05, 126)
-QuickPushBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
-QuickPushBtn.TextColor3 = Color3.fromRGB(150, 150, 150)
-QuickPushBtn.TextSize = 14
-QuickPushBtn.Font = Enum.Font.SourceSansBold
-QuickPushBtn.Text = "PUSH: OFF"
-QuickPushBtn.Visible = false
-styleElement(QuickPushBtn, 8, Color3.fromRGB(50, 50, 60))
-QuickPushBtn.Parent = ScreenGui
-
-local function updateQuickPushVisual(isActive)
-    states.PushToggle = isActive
-    if isActive then
-        QuickPushBtn.Text = "PUSH: ON"
-        QuickPushBtn.TextColor3 = Color3.fromRGB(255, 0, 100)
-        if QuickPushBtn:FindFirstChildOfClass("UIStroke") then QuickPushBtn.UIStroke.Color = Color3.fromRGB(255, 0, 100) end
-    else
-        QuickPushBtn.Text = "PUSH: OFF"
-        QuickPushBtn.TextColor3 = Color3.fromRGB(150, 150, 150)
-        if QuickPushBtn:FindFirstChildOfClass("UIStroke") then QuickPushBtn.UIStroke.Color = Color3.fromRGB(50, 50, 60) end
-    end
-    if menuToggles["Отталкивать врагов вблизи"] then
-        menuToggles["Отталкивать врагов вблизи"].BackgroundColor3 = isActive and Color3.fromRGB(255, 0, 100) or Color3.fromRGB(50, 50, 60)
-    end
-end
-QuickPushBtn.MouseButton1Click:Connect(function() updateQuickPushVisual(not states.PushToggle) end)
 
 -- [[ КОНСТРУКТОРЫ ЭЛЕМЕНТОВ МЕНЮ ]]
 local buttonY = 10
@@ -259,8 +233,6 @@ local function createToggle(name, default, callback)
             updateQuickAimVisual(active)
         elseif name == "Режим полета (Fly)" then
             updateQuickFlyVisual(active)
-        elseif name == "Отталкивать врагов вблизи" then
-            updateQuickPushVisual(active)
         else
             callback(active)
         end
@@ -341,105 +313,65 @@ local function createSlider(name, min, max, default, callback)
     buttonY = buttonY + 63
 end
 
--- [[ ИНИЦИАЛИЗАЦИЯ ЭЛЕМЕНТОВ МЕНЮ ]]
-createToggle("Включить Аимбот", states.Aimbot, function(val) states.Aimbot = val end)
-createSlider("Радиус Аима (FOV)", 10, 500, states.Aim_FOV, function(val) states.Aim_FOV = val end)
-createToggle("Режим полета (Fly)", states.Fly, function(val) states.Fly = val end)
-createToggle("Полет сквозь стены (Noclip)", states.FlyNoclip, function(val) states.FlyNoclip = val end)
-createSlider("Скорость полета", 10, 200, states.FlySpeed, function(val) states.FlySpeed = val end)
-createToggle("ESP: Мардер и Шериф", states.ESP, function(val) states.ESP = val end)
-createToggle("Отталкивать врагов вблизи", states.PushToggle, function(val) states.PushToggle = val end)
-createSlider("Дистанция отталкивания", 5, 30, states.PushDist, function(val) states.PushDist = val end)
-
--- [[ ЛОГИКА КЛЮЧА ]]
-CheckKeyBtn.MouseButton1Click:Connect(function()
-    if KeyInput.Text == CORRECT_KEY then
-        KeyFrame:Destroy()
-        MainPanel.Visible = true
-        ToggleMenuBtn.Visible = true
-        QuickAimBtn.Visible = true
-        QuickFlyBtn.Visible = true
-        QuickPushBtn.Visible = true
-    else
-        KeyInput.Text = ""
-        KeyInput.PlaceholderText = "НЕВЕРНЫЙ КЛЮЧ!"
-        task.delay(2, function()
-            if KeyInput then KeyInput.PlaceholderText = "Введите секретный ключ..." end
-        end)
+-- Проверка команд (тиммейты)
+local function checkIsTeammate(player)
+    if player == LocalPlayer then return true end
+    if LocalPlayer.Team and player.Team then
+        return LocalPlayer.Team == player.Team
     end
-end)
-
--- [[ УМНОЕ ОПРЕДЕЛЕНИЕ РОЛИ В MM2 ]]
-local function getMM2Role(player)
-    if not player then return "Innocent" end
-    
-    local parts = {}
-    if player.Backpack then
-        for _, item in pairs(player.Backpack:GetChildren()) do table.insert(parts, item) end
-    end
-    if player.Character then
-        for _, item in pairs(player.Character:GetChildren()) do table.insert(parts, item) end
-    end
-    
-    for _, item in pairs(parts) do
-        if item:IsA("Tool") then
-            local name = item.Name:lower()
-            if name:find("knife") or name:find("blade") or item:FindFirstChild("KnifeScript") or item:FindFirstChild("Effect") then
-                return "Murderer"
-            elseif name:find("gun") or name:find("revolver") or item:FindFirstChild("GunScript") then
-                return "Sheriff"
-            end
-        end
-    end
-    return "Innocent"
+    return false
 end
 
--- [[ СМАРТ-ESP ДЛЯ MM2 ]]
+-- [[ БЕЗОПАСНЫЙ ОБХОД ДЛЯ ESP (HIGHLIGHTS) ]]
 local function applyBypassESP(player)
     if player == LocalPlayer then return end
     
     local function setupChar(char)
+        if checkIsTeammate(player) then return end
+        
+        if char:FindFirstChild("LordESP_Highlight") then char.LordESP_Highlight:Destroy() end
         if char:FindFirstChild("LordESP_Gui") then char.LordESP_Gui:Destroy() end
         
+        local highlight = Instance.new("Highlight")
+        highlight.Name = "LordESP_Highlight"
+        highlight.FillColor = Color3.fromRGB(255, 0, 100)
+        highlight.FillTransparency = 0.5
+        highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+        highlight.OutlineTransparency = 0
+        highlight.Adornee = char
+        highlight.Enabled = states.ESP
+        highlight.Parent = char
+
         local bGui = Instance.new("BillboardGui")
         bGui.Name = "LordESP_Gui"
         bGui.Size = UDim2.new(0, 200, 0, 50)
         bGui.AlwaysOnTop = true
         bGui.ExtentsOffset = Vector3.new(0, 3, 0)
         bGui.Adornee = char:FindFirstChild("Head")
-        bGui.Enabled = false
+        bGui.Enabled = states.ESP
         
         local label = Instance.new("TextLabel")
         label.Size = UDim2.new(1, 0, 1, 0)
         label.BackgroundTransparency = 1
+        label.TextColor3 = Color3.fromRGB(255, 255, 255)
         label.TextStrokeTransparency = 0
-        label.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
         label.Font = Enum.Font.GothamBold
-        label.TextSize = 14
+        label.TextSize = 12
         label.Parent = bGui
         bGui.Parent = char
 
         task.spawn(function()
             while char and char.Parent and bGui and bGui.Parent do
                 if states.ESP and char:FindFirstChild("HumanoidRootPart") then
-                    local role = getMM2Role(player)
                     local dist = math.floor((char.HumanoidRootPart.Position - Camera.CFrame.Position).Magnitude)
-                    
-                    if role == "Murderer" then
-                        label.TextColor3 = Color3.fromRGB(255, 0, 0)
-                        label.Text = "⚠️ [MURDERER] " .. player.Name .. " (" .. dist .. "m) ⚠️"
-                        bGui.Enabled = true
-                    elseif role == "Sheriff" then
-                        label.TextColor3 = Color3.fromRGB(0, 150, 255)
-                        label.Text = "⭐ [SHERIFF] " .. player.Name .. " (" .. dist .. "m) ⭐"
-                        bGui.Enabled = true
-                    else
-                        bGui.Enabled = false
-                    end
+                    label.Text = player.Name .. " [" .. dist .. "m]"
+                    bGui.Enabled = true
+                    highlight.Enabled = true
                 else
                     bGui.Enabled = false
+                    highlight.Enabled = false
                 end
-                task.wait(0.4)
+                task.wait(0.2)
             end
         end)
     end
@@ -457,7 +389,7 @@ local function getClosestPlayerToCenter()
     local centerScreen = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
     
     for _, player in pairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character then
+        if player ~= LocalPlayer and player.Character and not checkIsTeammate(player) then
             local part = player.Character:FindFirstChild(AimPart)
             local hum = player.Character:FindFirstChildOfClass("Humanoid")
             
@@ -476,34 +408,108 @@ local function getClosestPlayerToCenter()
     return closestTarget
 end
 
--- [[ ЦИКЛ АИМБОТА ]]
+-- [[ ОБНОВЛЕННЫЙ ЦИКЛ АИМБОТА (СИМУЛЯЦИЯ МЫШИ / БАЙПАС) ]]
 RunService.RenderStepped:Connect(function()
     if states.Aimbot then
         local target = getClosestPlayerToCenter()
         if target then
-            local currentCFrame = Camera.CFrame
-            local targetCFrame = CFrame.new(currentCFrame.Position, target.Position)
-            Camera.CFrame = currentCFrame:Lerp(targetCFrame, Smoothness)
+            local screenPos, onScreen = Camera:WorldToViewportPoint(target.Position)
+            if onScreen then
+                local centerScreen = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+                local mouseMoveX = (screenPos.X - centerScreen.X) * Smoothness
+                local mouseMoveY = (screenPos.Y - centerScreen.Y) * Smoothness
+                
+                if mousemoverel then
+                    mousemoverel(mouseMoveX, mouseMoveY)
+                else
+                    local currentCFrame = Camera.CFrame
+                    local targetCFrame = CFrame.new(currentCFrame.Position, target.Position)
+                    Camera.CFrame = currentCFrame:Lerp(targetCFrame, Smoothness)
+                end
+            end
         end
     end
 end)
 
--- [[ ЛОГИКА ФЛАЯ, NOCLIP И ОТТАЛКИВАНИЯ ]]
+-- [[ ЛОГИКА ФЛАЯ С НАСТРОЙКОЙ СКОРОСТИ ]]
 local FlyBV, FlyBG
 RunService.RenderStepped:Connect(function()
-    local char = LocalPlayer.Character
-    local root = char and char:FindFirstChild("HumanoidRootPart")
-    local hum = char and char:FindFirstChildOfClass("Humanoid")
-    
-    if not root or not hum then return end
-    
-    -- Обработка Полета
-    if states.Fly then
-        if not FlyBV or FlyBV.Parent ~= root then 
-            FlyBV = Instance.new("BodyVelocity")
-            FlyBV.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-            FlyBV.Parent = root
+    pcall(function()
+        local char = LocalPlayer.Character
+        local root = char and char:FindFirstChild("HumanoidRootPart")
+        local hum = char and char:FindFirstChildOfClass("Humanoid")
+        
+        if states.Fly and root and hum then
+            if not FlyBV or FlyBV.Parent ~= root then 
+                FlyBV = Instance.new("BodyVelocity", root) 
+                FlyBV.MaxForce = Vector3.new(math.huge, math.huge, math.huge) 
+            end
+            if not FlyBG or FlyBG.Parent ~= root then 
+                FlyBG = Instance.new("BodyGyro", root) 
+                FlyBG.P = 9e4 
+                FlyBG.MaxTorque = Vector3.new(math.huge, math.huge, math.huge) 
+            end
+            
+            FlyBG.CFrame = Camera.CFrame
+            local moveDir = hum.MoveDirection
+            
+            if moveDir.Magnitude > 0 then
+                local lookVector = Camera.CFrame.LookVector
+                local rightVector = Camera.CFrame.RightVector
+                local localX = moveDir:Dot(Camera.CFrame.RightVector)
+                local localZ = moveDir:Dot(Camera.CFrame.LookVector)
+                FlyBV.Velocity = ((lookVector * localZ) + (rightVector * localX)).Unit * states.FlySpeed
+            else
+                FlyBV.Velocity = Vector3.new(0, 0, 0)
+            end
+        else
+            if FlyBV then FlyBV:Destroy() FlyBV = nil end
+            if FlyBG then FlyBG:Destroy() FlyBG = nil end
         end
-        if not FlyBG or FlyBG.Parent ~= root then
-            FlyBG = Instance.new("BodyGyro")
-            FlyBG.MaxTorque = Vector3.new(math.huge, math.hug
+    end)
+end)
+
+-- Мега Скорость бега
+RunService.Heartbeat:Connect(function()
+    pcall(function()
+        local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if hum then hum.WalkSpeed = states.SpeedToggle and states.WalkSpeedVal or 16 end
+    end)
+end)
+
+-- Локальная невидимость
+local function setInvis(state)
+    pcall(function()
+        local char = LocalPlayer.Character
+        if not char then return end
+        for _, part in pairs(char:GetDescendants()) do
+            if part:IsA("BasePart") or part:IsA("Decal") then 
+                if part.Name ~= "HumanoidRootPart" then part.Transparency = state and 1 or 0 end 
+            end
+        end
+    end)
+end
+
+-- [[ СОЗДАНИЕ КНОПОК И СЛАЙДЕРОВ В МЕНЮ ]]
+createToggle("Режим полета (Fly)", false, function(active) updateQuickFlyVisual(active) end)
+createSlider("Скорость полета", 10, 250, 60, function(v) states.FlySpeed = v end) -- НОВЫЙ СЛАЙДЕР СКОРОСТИ ФЛАЯ
+createToggle("Невидимость (Локально)", false, function(s) states.Invis = s setInvis(s) end)
+createToggle("Мега Скорость бега", false, function(s) states.SpeedToggle = s end)
+createToggle("Включить Box ESP (Враги)", false, function(s) states.ESP = s end)
+createToggle("Включить Аимбот", false, function(active) updateQuickAimVisual(active) end)
+createSlider("Радиус Аима (Aim FOV)", 30, 500, 150, function(v) states.Aim_FOV = v end)
+
+-- Проверка ключа при старте
+CheckKeyBtn.MouseButton1Click:Connect(function()
+    if KeyInput.Text == CORRECT_KEY then
+        KeyFrame:Destroy()
+        MainPanel.Visible = true
+        ToggleMenuBtn.Visible = true
+        QuickAimBtn.Visible = true
+        QuickFlyBtn.Visible = true
+    else
+        KeyInput.Text = ""
+        KeyInput.PlaceholderText = "НЕВЕРНЫЙ КЛЮЧ!"
+        KeyInput.PlaceholderColor3 = Color3.fromRGB(255, 50, 50)
+    end
+end)
