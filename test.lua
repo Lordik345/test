@@ -1,5 +1,5 @@
 -- =======================================================================
--- LORDIKHHH HUB | MURDER MYSTERY 2 | ULTIMATE VERSION (SILENT AIM & CAMERA FLY)
+-- LORDIKHHH HUB | MURDER MYSTERY 2 | FIXED FLY, SILENT AIM & NOCLIP
 -- =======================================================================
 
 local CorrectKey = "Lordikhhh"
@@ -27,12 +27,14 @@ local LocalPlayer = Players.LocalPlayer
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 local UserInputService = game:GetService("UserInputService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local EspEnabled = false
 local CoinEspEnabled = false
 local AutoFarmEnabled = false
 local FlyEnabled = false
 local SilentAimEnabled = false
+local NoclipEnabled = false
 local FlySpeed = 50
 local FlyConnection = nil
 
@@ -59,26 +61,6 @@ local function GetDroppedGun()
     return nil
 end
 
-local function TeleportTo(cframe)
-    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-        LocalPlayer.Character.HumanoidRootPart.CFrame = cframe
-    end
-end
-
-local function FlingPlayer(targetPlayer)
-    local Character = targetPlayer.Character
-    if Character and Character:FindFirstChild("HumanoidRootPart") then
-        local HumanoidRootPart = Character.HumanoidRootPart
-        local FlingForce = Instance.new("BodyVelocity")
-        FlingForce.Velocity = Vector3.new(math.random(200, 500), 500, math.random(200, 500))
-        FlingForce.MaxForce = Vector3.new(9e9, 9e9, 9e9)
-        FlingForce.Parent = HumanoidRootPart
-        wait(0.2)
-        FlingForce:Destroy()
-    end
-end
-
--- Функция для поиска ближайшей цели для Silent Aim
 local function GetClosestTarget()
     local ClosestPlayer = nil
     local MaxDistance = 1000
@@ -99,14 +81,34 @@ local function GetClosestTarget()
     return ClosestPlayer
 end
 
--- Логика полета по направлению взгляда (Camera Fly)
+-- Стабильный Silent Aim (Hook)
+local oldFireServer; oldFireServer = hookmetamethod(game, "__namecall", function(self, ...)
+    local args = {...}
+    local method = getnamecallmethod()
+    
+    if SilentAimEnabled and method == "FireServer" and (self.Name == "ShootGun" or self.Name == "Shoot") then
+        local Target = GetClosestTarget()
+        if Target and Target.Character and Target.Character:FindFirstChild("Head") then
+            args[1] = Target.Character.Head.Position
+            return oldFireServer(self, unpack(args))
+        end
+    end
+    return oldFireServer(self, ...)
+end)
+
+-- НАДЁЖНЫЙ И ИСПРАВЛЕННЫЙ FLY (ПОЛЕТ ПО НАПРАВЛЕНИЮ КАМЕРЫ)
 local function ToggleFly(enabled)
     local Character = LocalPlayer.Character
     local RootPart = Character and Character:FindFirstChild("HumanoidRootPart")
-    if not RootPart then return end
+    local Humanoid = Character and Character:FindFirstChild("Humanoid")
+    if not RootPart or not Humanoid then return end
 
     if enabled then
+        if RootPart:FindFirstChild("FlightVelocity") then RootPart.FlightVelocity:Destroy() end
+        if RootPart:FindFirstChild("FlightGyro") then RootPart.FlightGyro:Destroy() end
         if FlyConnection then FlyConnection:Disconnect() end
+
+        Humanoid:ChangeState(Enum.HumanoidStateType.Physics)
 
         local BV = Instance.new("BodyVelocity")
         BV.Name = "FlightVelocity"
@@ -117,7 +119,8 @@ local function ToggleFly(enabled)
         local BG = Instance.new("BodyGyro")
         BG.Name = "FlightGyro"
         BG.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
-        BG.P = 1e4
+        BG.P = 1.5e4
+        BG.D = 150
         BG.CFrame = RootPart.CFrame
         BG.Parent = RootPart
 
@@ -126,17 +129,16 @@ local function ToggleFly(enabled)
                 if FlyConnection then FlyConnection:Disconnect() end
                 return 
             end
+            
+            Humanoid:ChangeState(Enum.HumanoidStateType.Physics)
 
             local Camera = Workspace.CurrentCamera
             local MoveDirection = Vector3.new(0, 0, 0)
 
-            local Look = Camera.CFrame.LookVector
-            local Right = Camera.CFrame.RightVector
-
-            if UserInputService:IsKeyDown(Enum.KeyCode.W) then MoveDirection = MoveDirection + Look end
-            if UserInputService:IsKeyDown(Enum.KeyCode.S) then MoveDirection = MoveDirection - Look end
-            if UserInputService:IsKeyDown(Enum.KeyCode.A) then MoveDirection = MoveDirection - Right end
-            if UserInputService:IsKeyDown(Enum.KeyCode.D) then MoveDirection = MoveDirection + Right end
+            if UserInputService:IsKeyDown(Enum.KeyCode.W) then MoveDirection = MoveDirection + Camera.CFrame.LookVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.S) then MoveDirection = MoveDirection - Camera.CFrame.LookVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.A) then MoveDirection = MoveDirection - Camera.CFrame.RightVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.D) then MoveDirection = MoveDirection + Camera.CFrame.RightVector end
 
             RootPart.FlightVelocity.Velocity = MoveDirection * FlySpeed
             RootPart.FlightGyro.CFrame = Camera.CFrame
@@ -145,30 +147,22 @@ local function ToggleFly(enabled)
         if FlyConnection then FlyConnection:Disconnect() end
         if RootPart:FindFirstChild("FlightVelocity") then RootPart.FlightVelocity:Destroy() end
         if RootPart:FindFirstChild("FlightGyro") then RootPart.FlightGyro:Destroy() end
+        
+        Humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
     end
 end
 
--- Перехват мета-методов (Хук) для работы Silent Aim
-local mt = getrawmetatable(game)
-local oldNamecall = mt.__namecall
-setreadonly(mt, false)
-
-mt.__namecall = newcclosure(function(self, ...)
-    local method = getnamecallmethod()
-    local args = {...}
-    
-    if SilentAimEnabled and method == "FireServer" and self.Name == "ShootGun" then
-        local Target = GetClosestTarget()
-        if Target and Target.Character and Target.Character:FindFirstChild("Head") then
-            args[1] = Target.Character.Head.Position
-            return self.FireServer(self, unpack(args))
+-- Основной цикл для обработки Ноуклипа (Сквозь стены) и ESP
+RunService.Stepped:Connect(function()
+    -- Логика Noclip
+    if NoclipEnabled and LocalPlayer.Character then
+        for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
+            if part:IsA("BasePart") and part.CanCollide then
+                part.CanCollide = false
+            end
         end
     end
-    
-    return oldNamecall(self, ...)
 end)
-
-setreadonly(mt, true)
 
 -- AutoFarm Loop
 spawn(function()
@@ -195,36 +189,36 @@ local VisualsTab = Window:CreateTab("Визуалы", 4483362458)
 VisualsTab:CreateToggle({Name = "ESP (Убийца/Шериф)", Callback = function(v) EspEnabled = v end})
 VisualsTab:CreateToggle({Name = "Подсветка Монет", Callback = function(v) CoinEspEnabled = v end})
 
-local CombatTab = Window:CreateTab("Бой (Combat)", 4483362458)
+local CombatTab = Window:CreateTab("Бой", 4483362458)
 CombatTab:CreateToggle({Name = "Silent Aim (Невидимый аим)", Callback = function(v) SilentAimEnabled = v end})
 
 local TeleportTab = Window:CreateTab("Телепорты", 4483362458)
 TeleportTab:CreateButton({Name = "ТП к Убийце", Callback = function()
     for _, pl in pairs(Players:GetPlayers()) do
         if pl ~= LocalPlayer and GetPlayerRole(pl) == "Murderer" and pl.Character then
-            TeleportTo(pl.Character.HumanoidRootPart.CFrame * CFrame.new(0, 3, 0))
+            if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                LocalPlayer.Character.HumanoidRootPart.CFrame = pl.Character.HumanoidRootPart.CFrame * CFrame.new(0, 3, 0)
+            end
         end
     end
 end})
 TeleportTab:CreateButton({Name = "ТП к Пистолету", Callback = function()
     local g = GetDroppedGun()
-    if g then TeleportTo(g:IsA("Model") and g:GetPivot() * CFrame.new(0,2,0) or g.CFrame * CFrame.new(0,2,0)) end
-end})
-TeleportTab:CreateButton({Name = "Оттолкнуть ближайшего (Fling)", Callback = function()
-    local closest, minD = nil, 15
-    for _, pl in pairs(Players:GetPlayers()) do
-        if pl ~= LocalPlayer and pl.Character and pl.Character:FindFirstChild("HumanoidRootPart") then
-            local dist = (pl.Character.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
-            if dist < minD then closest = pl; minD = dist end
+    if g then 
+        local targetCFrame = g:IsA("Model") and g:GetPivot() * CFrame.new(0,2,0) or g.CFrame * CFrame.new(0,2,0)
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            LocalPlayer.Character.HumanoidRootPart.CFrame = targetCFrame
         end
     end
-    if closest then FlingPlayer(closest) end
 end})
 
 local FarmTab = Window:CreateTab("Фарм и Полет", 4483362458)
 FarmTab:CreateToggle({Name = "Авто-фарм монет", Callback = function(v) AutoFarmEnabled = v end})
 FarmTab:CreateToggle({Name = "Полет (Fly)", Callback = function(v) FlyEnabled = v; ToggleFly(v) end})
 FarmTab:CreateSlider({Name = "Скорость полета", Range = {10, 200}, CurrentValue = 50, Callback = function(v) FlySpeed = v end})
+
+local MiscTab = Window:CreateTab("Разное", 4483362458)
+MiscTab:CreateToggle({Name = "Прохождение сквозь стены (Noclip)", Callback = function(v) NoclipEnabled = v end})
 
 -- ESP Loop
 RunService.RenderStepped:Connect(function()
@@ -240,4 +234,4 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
-Rayfield:Notify({Title = "Успешно", Content = "Lordikhhh Hub готов к работе!", Duration = 3})
+Rayfield:Notify({Title = "Успешно", Content = "Lordikhhh Hub полностью обновлен!", Duration = 3})
