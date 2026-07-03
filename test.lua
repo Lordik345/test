@@ -1,3 +1,4 @@
+-- [[ ESP СКРИПТ ДЛЯ 99 НОЧЕЙ С КЛЮЧОМ И ВКЛ/ВЫКЛ ТУМБЛЕРАМИ ]]
 local CoreGui = game:GetService("CoreGui")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -8,26 +9,18 @@ local Camera = workspace.CurrentCamera
 -- [[ НАСТРОЙКА КЛЮЧА ]]
 local CORRECT_KEY = "Lordikhhh"
 
--- [[ НАСТРОЙКИ ]]
-local Smoothness = 0.15 -- Скорость наводки аима (чем выше, тем быстрее)
-local AimPart = "Head"
-
+-- Состояния кнопок (по умолчанию все ВЫКЛЮЧЕНО)
 local states = { 
-    Fly = false, FlySpeed = 60,
-    Invis = false, 
-    SpeedToggle = false, WalkSpeedVal = 100,
-    ESP = false,
-    Aimbot = false,
-    Aim_FOV = 150
+    ItemsESP = false,
+    ChildrenESP = false,
+    BastionESP = false
 }
 
-local menuToggles = {}
-
--- Полная очистка старых интерфейсов перед запуском
-if CoreGui:FindFirstChild("DeltaMegaMenu") then CoreGui.DeltaMegaMenu:Destroy() end
+local UI_NAME = "Nights99_Premium_Hub_v2"
+if CoreGui:FindFirstChild(UI_NAME) then CoreGui[UI_NAME]:Destroy() end
 
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "DeltaMegaMenu"
+ScreenGui.Name = UI_NAME
 ScreenGui.Parent = CoreGui
 ScreenGui.ResetOnSpawn = false
 
@@ -66,7 +59,7 @@ KeyInput.Position = UDim2.new(0.5, -120, 0, 55)
 KeyInput.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 KeyInput.BackgroundTransparency = 0.95
 KeyInput.Text = ""
-KeyInput.PlaceholderText = "Введите секретный ключ..."
+KeyInput.PlaceholderText = "Введите ключ..."
 KeyInput.PlaceholderColor3 = Color3.fromRGB(100, 100, 110)
 KeyInput.TextColor3 = Color3.fromRGB(255, 255, 255)
 KeyInput.TextSize = 14
@@ -87,8 +80,8 @@ CheckKeyBtn.Parent = KeyFrame
 
 -- [[ UI ГЛАВНОГО МЕНЮ ]]
 local MainPanel = Instance.new("Frame")
-MainPanel.Size = UDim2.new(0, 340, 0, 420)
-MainPanel.Position = UDim2.new(0.5, -170, 0.25, -210)
+MainPanel.Size = UDim2.new(0, 330, 0, 240)
+MainPanel.Position = UDim2.new(0.5, -165, 0.35, -120)
 MainPanel.BackgroundColor3 = Color3.fromRGB(12, 12, 15)
 MainPanel.Visible = false
 MainPanel.Active = true
@@ -99,7 +92,7 @@ MainPanel.Parent = ScreenGui
 local MainTitle = Instance.new("TextLabel")
 MainTitle.Size = UDim2.new(1, 0, 0, 45)
 MainTitle.BackgroundTransparency = 1
-MainTitle.Text = "LORD HUB VIP v5.0"
+MainTitle.Text = "99 NIGHTS PREMIUM ESP"
 MainTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
 MainTitle.TextSize = 14
 MainTitle.Font = Enum.Font.GothamBold
@@ -109,18 +102,18 @@ local ScrollContainer = Instance.new("ScrollingFrame")
 ScrollContainer.Size = UDim2.new(1, 0, 1, -50)
 ScrollContainer.Position = UDim2.new(0, 0, 0, 45)
 ScrollContainer.BackgroundTransparency = 1
-ScrollContainer.CanvasSize = UDim2.new(0, 0, 0, 500)
+ScrollContainer.CanvasSize = UDim2.new(0, 0, 0, 200)
 ScrollContainer.ScrollBarThickness = 4
 ScrollContainer.Parent = MainPanel
 
 -- Кнопка скрыть/показать меню
 local ToggleMenuBtn = Instance.new("TextButton")
-ToggleMenuBtn.Size = UDim2.new(0, 90, 0, 35)
+ToggleMenuBtn.Size = UDim2.new(0, 100, 0, 35)
 ToggleMenuBtn.Position = UDim2.new(0.05, 0, 0.05, 0)
 ToggleMenuBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
 ToggleMenuBtn.TextColor3 = Color3.fromRGB(255, 0, 100)
-ToggleMenuBtn.TextSize = 14
-ToggleMenuBtn.Font = Enum.Font.SourceSansBold
+ToggleMenuBtn.TextSize = 13
+ToggleMenuBtn.Font = Enum.Font.GothamBold
 ToggleMenuBtn.Text = "CLOSE MENU"
 ToggleMenuBtn.Visible = false
 styleElement(ToggleMenuBtn, 8, Color3.fromRGB(255, 0, 100))
@@ -131,80 +124,18 @@ ToggleMenuBtn.MouseButton1Click:Connect(function()
     ToggleMenuBtn.Text = MainPanel.Visible and "CLOSE MENU" or "OPEN MENU"
 end)
 
--- [[ БЫСТРАЯ КНОПКА АИМА НА ЭКРАНЕ ]]
-local QuickAimBtn = Instance.new("TextButton")
-QuickAimBtn.Size = UDim2.new(0, 90, 0, 35)
-QuickAimBtn.Position = UDim2.new(0.05, 0, 0.05, 42)
-QuickAimBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
-QuickAimBtn.TextColor3 = Color3.fromRGB(150, 150, 150)
-QuickAimBtn.TextSize = 14
-QuickAimBtn.Font = Enum.Font.SourceSansBold
-QuickAimBtn.Text = "AIM: OFF"
-QuickAimBtn.Visible = false
-styleElement(QuickAimBtn, 8, Color3.fromRGB(50, 50, 60))
-QuickAimBtn.Parent = ScreenGui
-
-local function updateQuickAimVisual(isActive)
-    states.Aimbot = isActive
-    if isActive then
-        QuickAimBtn.Text = "AIM: ON"
-        QuickAimBtn.TextColor3 = Color3.fromRGB(255, 0, 100)
-        QuickAimBtn.UIStroke.Color = Color3.fromRGB(255, 0, 100)
-    else
-        QuickAimBtn.Text = "AIM: OFF"
-        QuickAimBtn.TextColor3 = Color3.fromRGB(150, 150, 150)
-        QuickAimBtn.UIStroke.Color = Color3.fromRGB(50, 50, 60)
-    end
-    if menuToggles["Включить Аимбот"] then
-        menuToggles["Включить Аимбот"].BackgroundColor3 = isActive and Color3.fromRGB(255, 0, 100) or Color3.fromRGB(50, 50, 60)
-    end
-end
-
-QuickAimBtn.MouseButton1Click:Connect(function() updateQuickAimVisual(not states.Aimbot) end)
-
--- [[ БЫСТРАЯ КНОПКА ФЛАЯ НА ЭКРАНЕ ]]
-local QuickFlyBtn = Instance.new("TextButton")
-QuickFlyBtn.Size = UDim2.new(0, 90, 0, 35)
-QuickFlyBtn.Position = UDim2.new(0.05, 0, 0.05, 84)
-QuickFlyBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
-QuickFlyBtn.TextColor3 = Color3.fromRGB(150, 150, 150)
-QuickFlyBtn.TextSize = 14
-QuickFlyBtn.Font = Enum.Font.SourceSansBold
-QuickFlyBtn.Text = "FLY: OFF"
-QuickFlyBtn.Visible = false
-styleElement(QuickFlyBtn, 8, Color3.fromRGB(50, 50, 60))
-QuickFlyBtn.Parent = ScreenGui
-
-local function updateQuickFlyVisual(isActive)
-    states.Fly = isActive
-    if isActive then
-        QuickFlyBtn.Text = "FLY: ON"
-        QuickFlyBtn.TextColor3 = Color3.fromRGB(255, 0, 100)
-        QuickFlyBtn.UIStroke.Color = Color3.fromRGB(255, 0, 100)
-    else
-        QuickFlyBtn.Text = "FLY: OFF"
-        QuickFlyBtn.TextColor3 = Color3.fromRGB(150, 150, 150)
-        QuickFlyBtn.UIStroke.Color = Color3.fromRGB(50, 50, 60)
-    end
-    if menuToggles["Режим полета (Fly)"] then
-        menuToggles["Режим полета (Fly)"].BackgroundColor3 = isActive and Color3.fromRGB(255, 0, 100) or Color3.fromRGB(50, 50, 60)
-    end
-end
-
-QuickFlyBtn.MouseButton1Click:Connect(function() updateQuickFlyVisual(not states.Fly) end)
-
--- [[ КОНСТРУКТОРЫ ЭЛЕМЕНТОВ МЕНЮ ]]
+-- [[ КОНСТРУКТОР КНОПОК ВКЛ/ВЫКЛ ]]
 local buttonY = 10
-local function createToggle(name, default, callback)
+local function createToggle(name, stateKey)
     local Frame = Instance.new("Frame")
-    Frame.Size = UDim2.new(0, 300, 0, 40)
+    Frame.Size = UDim2.new(0, 290, 0, 40)
     Frame.Position = UDim2.new(0, 15, 0, buttonY)
     Frame.BackgroundColor3 = Color3.fromRGB(20, 20, 24)
     styleElement(Frame, 8)
     Frame.Parent = ScrollContainer
     
     local Text = Instance.new("TextLabel")
-    Text.Size = UDim2.new(0.7, 0, 1, 0)
+    Text.Size = UDim2.new(0.65, 0, 1, 0)
     Text.Position = UDim2.new(0, 12, 0, 0)
     Text.BackgroundTransparency = 1
     Text.Text = name
@@ -215,300 +146,118 @@ local function createToggle(name, default, callback)
     Text.Parent = Frame
 
     local ToggleBtn = Instance.new("TextButton")
-    ToggleBtn.Size = UDim2.new(0, 46, 0, 22)
-    ToggleBtn.Position = UDim2.new(0.82, 0, 0.22, 0)
-    ToggleBtn.BackgroundColor3 = default and Color3.fromRGB(255, 0, 100) or Color3.fromRGB(50, 50, 60)
-    ToggleBtn.Text = ""
-    styleElement(ToggleBtn, 11)
+    ToggleBtn.Size = UDim2.new(0, 65, 0, 26)
+    ToggleBtn.Position = UDim2.new(0.74, 0, 0.18, 0)
+    ToggleBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+    ToggleBtn.Text = "ВЫКЛ"
+    ToggleBtn.TextColor3 = Color3.fromRGB(180, 180, 180)
+    ToggleBtn.TextSize = 11
+    ToggleBtn.Font = Enum.Font.GothamBold
+    styleElement(ToggleBtn, 6)
     ToggleBtn.Parent = Frame
 
-    menuToggles[name] = ToggleBtn
-
-    local active = default
+    -- Клик переключает состояние true / false
     ToggleBtn.MouseButton1Click:Connect(function()
-        active = not active
-        ToggleBtn.BackgroundColor3 = active and Color3.fromRGB(255, 0, 100) or Color3.fromRGB(50, 50, 60)
+        states[stateKey] = not states[stateKey]
         
-        if name == "Включить Аимбот" then
-            updateQuickAimVisual(active)
-        elseif name == "Режим полета (Fly)" then
-            updateQuickFlyVisual(active)
+        if states[stateKey] then
+            ToggleBtn.BackgroundColor3 = Color3.fromRGB(255, 0, 100) -- Яркий розовый при включении
+            ToggleBtn.Text = "ВКЛ"
+            ToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
         else
-            callback(active)
+            ToggleBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 60) -- Серый при выключении
+            ToggleBtn.Text = "ВЫКЛ"
+            ToggleBtn.TextColor3 = Color3.fromRGB(180, 180, 180)
         end
     end)
     buttonY = buttonY + 48
 end
 
-local function createSlider(name, min, max, default, callback)
-    local Frame = Instance.new("Frame")
-    Frame.Size = UDim2.new(0, 300, 0, 55)
-    Frame.Position = UDim2.new(0, 15, 0, buttonY)
-    Frame.BackgroundColor3 = Color3.fromRGB(20, 20, 24)
-    styleElement(Frame, 8)
-    Frame.Parent = ScrollContainer
+-- [[ ЛОГИКА СИСТЕМЫ ESP ]]
+local function createObjectESP(object, color, nameText, stateKey)
+    if not object:IsA("Model") and not object:IsA("BasePart") then return end
+    if object:FindFirstChild("NightsESP_Highlight") then return end
 
-    local Text = Instance.new("TextLabel")
-    Text.Size = UDim2.new(0.7, 0, 0, 25)
-    Text.Position = UDim2.new(0, 12, 0, 2)
-    Text.BackgroundTransparency = 1
-    Text.Text = name
-    Text.TextColor3 = Color3.fromRGB(220, 220, 220)
-    Text.TextSize = 13
-    Text.Font = Enum.Font.Gotham
-    Text.TextXAlignment = Enum.TextXAlignment.Left
-    Text.Parent = Frame
+    local highlight = Instance.new("Highlight")
+    highlight.Name = "NightsESP_Highlight"
+    highlight.FillColor = color
+    highlight.FillTransparency = 0.4
+    highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+    highlight.OutlineTransparency = 0
+    highlight.Adornee = object
+    highlight.Enabled = states[stateKey]
+    highlight.Parent = object
 
-    local ValueLabel = Instance.new("TextLabel")
-    ValueLabel.Size = UDim2.new(0.25, 0, 0, 25)
-    ValueLabel.Position = UDim2.new(0.7, 0, 0, 2)
-    ValueLabel.BackgroundTransparency = 1
-    ValueLabel.Text = tostring(default)
-    ValueLabel.TextColor3 = Color3.fromRGB(255, 0, 100)
-    ValueLabel.TextSize = 13
-    ValueLabel.Font = Enum.Font.GothamBold
-    ValueLabel.TextXAlignment = Enum.TextXAlignment.Right
-    ValueLabel.Parent = Frame
-
-    local SliderTrack = Instance.new("Frame")
-    SliderTrack.Size = UDim2.new(0, 276, 0, 6)
-    SliderTrack.Position = UDim2.new(0, 12, 0, 35)
-    SliderTrack.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
-    styleElement(SliderTrack, 3)
-    SliderTrack.Parent = Frame
-
-    local SliderFill = Instance.new("Frame")
-    SliderFill.Size = UDim2.new((default - min) / (max - min), 0, 1, 0)
-    SliderFill.BackgroundColor3 = Color3.fromRGB(255, 0, 100)
-    styleElement(SliderFill, 3)
-    SliderFill.Parent = SliderTrack
-
-    local SliderButton = Instance.new("TextButton")
-    SliderButton.Size = UDim2.new(0, 14, 0, 14)
-    SliderButton.Position = UDim2.new((default - min) / (max - min), -7, 0.5, -7)
-    SliderButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-    SliderButton.Text = ""
-    styleElement(SliderButton, 7, Color3.fromRGB(255, 0, 100))
-    SliderButton.Parent = SliderTrack
-
-    local dragging = false
-    local function updateSlider(input)
-        local deltaX = math.clamp((input.Position.X - SliderTrack.AbsolutePosition.X) / SliderTrack.AbsoluteSize.X, 0, 1)
-        local value = math.floor(min + (deltaX * (max - min)))
-        SliderFill.Size = UDim2.new(deltaX, 0, 1, 0)
-        SliderButton.Position = UDim2.new(deltaX, -7, 0.5, -7)
-        ValueLabel.Text = tostring(value)
-        callback(value)
-    end
-
-    SliderButton.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then dragging = true end
-    end)
-    UserInputService.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then dragging = false end
-    end)
-    UserInputService.InputChanged:Connect(function(input)
-        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then updateSlider(input) end
-    end)
-    buttonY = buttonY + 63
-end
-
--- Проверка команд (тиммейты)
-local function checkIsTeammate(player)
-    if player == LocalPlayer then return true end
-    if LocalPlayer.Team and player.Team then
-        return LocalPlayer.Team == player.Team
-    end
-    return false
-end
-
--- [[ БЕЗОПАСНЫЙ ОБХОД ДЛЯ ESP (HIGHLIGHTS) ]]
-local function applyBypassESP(player)
-    if player == LocalPlayer then return end
+    local bGui = Instance.new("BillboardGui")
+    bGui.Name = "NightsESP_Gui"
+    bGui.Size = UDim2.new(0, 150, 0, 40)
+    bGui.AlwaysOnTop = true
+    bGui.ExtentsOffset = Vector3.new(0, 3, 0)
+    bGui.Enabled = states[stateKey]
     
-    local function setupChar(char)
-        if checkIsTeammate(player) then return end
-        
-        if char:FindFirstChild("LordESP_Highlight") then char.LordESP_Highlight:Destroy() end
-        if char:FindFirstChild("LordESP_Gui") then char.LordESP_Gui:Destroy() end
-        
-        local highlight = Instance.new("Highlight")
-        highlight.Name = "LordESP_Highlight"
-        highlight.FillColor = Color3.fromRGB(255, 0, 100)
-        highlight.FillTransparency = 0.5
-        highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
-        highlight.OutlineTransparency = 0
-        highlight.Adornee = char
-        highlight.Enabled = states.ESP
-        highlight.Parent = char
-
-        local bGui = Instance.new("BillboardGui")
-        bGui.Name = "LordESP_Gui"
-        bGui.Size = UDim2.new(0, 200, 0, 50)
-        bGui.AlwaysOnTop = true
-        bGui.ExtentsOffset = Vector3.new(0, 3, 0)
-        bGui.Adornee = char:FindFirstChild("Head")
-        bGui.Enabled = states.ESP
-        
-        local label = Instance.new("TextLabel")
-        label.Size = UDim2.new(1, 0, 1, 0)
-        label.BackgroundTransparency = 1
-        label.TextColor3 = Color3.fromRGB(255, 255, 255)
-        label.TextStrokeTransparency = 0
-        label.Font = Enum.Font.GothamBold
-        label.TextSize = 12
-        label.Parent = bGui
-        bGui.Parent = char
-
-        task.spawn(function()
-            while char and char.Parent and bGui and bGui.Parent do
-                if states.ESP and char:FindFirstChild("HumanoidRootPart") then
-                    local dist = math.floor((char.HumanoidRootPart.Position - Camera.CFrame.Position).Magnitude)
-                    label.Text = player.Name .. " [" .. dist .. "m]"
-                    bGui.Enabled = true
-                    highlight.Enabled = true
-                else
-                    bGui.Enabled = false
-                    highlight.Enabled = false
-                end
-                task.wait(0.2)
-            end
-        end)
-    end
-
-    if player.Character then setupChar(player.Character) end
-    player.CharacterAdded:Connect(setupChar)
-end
-
-for _, p in pairs(Players:GetPlayers()) do applyBypassESP(p) end
-Players.PlayerAdded:Connect(applyBypassESP)
-
--- [[ ПОИСК ЦЕЛИ ДЛЯ АИМА ]]
-local function getClosestPlayerToCenter()
-    local closestTarget, shortestDistance = nil, states.Aim_FOV
-    local centerScreen = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, 0, 1, 0)
+    label.BackgroundTransparency = 1
+    label.TextColor3 = color
+    label.TextStrokeTransparency = 0.2
+    label.Font = Enum.Font.GothamBold
+    label.TextSize = 12
+    label.Text = nameText
+    label.Parent = bGui
     
-    for _, player in pairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character and not checkIsTeammate(player) then
-            local part = player.Character:FindFirstChild(AimPart)
-            local hum = player.Character:FindFirstChildOfClass("Humanoid")
-            
-            if part and hum and hum.Health > 0 then
-                local screenPos, onScreen = Camera:WorldToViewportPoint(part.Position)
-                if onScreen then
-                    local distanceToCenter = (Vector2.new(screenPos.X, screenPos.Y) - centerScreen).Magnitude
-                    if distanceToCenter < shortestDistance then
-                        shortestDistance = distanceToCenter
-                        closestTarget = part
-                    end
-                end
-            end
-        end
+    local targetPart = object:IsA("BasePart") and object or (object:FindFirstChild("HumanoidRootPart") or object:FindFirstChildWhichIsA("BasePart"))
+    if targetPart then
+        bGui.Adornee = targetPart
+        bGui.Parent = object
     end
-    return closestTarget
-end
 
--- [[ ОБНОВЛЕННЫЙ ЦИКЛ АИМБОТА (СИМУЛЯЦИЯ МЫШИ / БАЙПАС) ]]
-RunService.RenderStepped:Connect(function()
-    if states.Aimbot then
-        local target = getClosestPlayerToCenter()
-        if target then
-            local screenPos, onScreen = Camera:WorldToViewportPoint(target.Position)
-            if onScreen then
-                local centerScreen = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
-                local mouseMoveX = (screenPos.X - centerScreen.X) * Smoothness
-                local mouseMoveY = (screenPos.Y - centerScreen.Y) * Smoothness
-                
-                if mousemoverel then
-                    mousemoverel(mouseMoveX, mouseMoveY)
-                else
-                    local currentCFrame = Camera.CFrame
-                    local targetCFrame = CFrame.new(currentCFrame.Position, target.Position)
-                    Camera.CFrame = currentCFrame:Lerp(targetCFrame, Smoothness)
-                end
-            end
-        end
-    end
-end)
-
--- [[ ЛОГИКА ФЛАЯ С НАСТРОЙКОЙ СКОРОСТИ ]]
-local FlyBV, FlyBG
-RunService.RenderStepped:Connect(function()
-    pcall(function()
-        local char = LocalPlayer.Character
-        local root = char and char:FindFirstChild("HumanoidRootPart")
-        local hum = char and char:FindFirstChildOfClass("Humanoid")
-        
-        if states.Fly and root and hum then
-            -- Логика Noclip (CanCollide = false) полностью удалена отсюда
-
-            if not FlyBV or FlyBV.Parent ~= root then 
-                FlyBV = Instance.new("BodyVelocity", root) 
-                FlyBV.MaxForce = Vector3.new(math.huge, math.huge, math.huge) 
-            end
-            if not FlyBG or FlyBG.Parent ~= root then 
-                FlyBG = Instance.new("BodyGyro", root) 
-                FlyBG.P = 9e4 
-                FlyBG.MaxTorque = Vector3.new(math.huge, math.huge, math.huge) 
-            end
-            
-            FlyBG.CFrame = Camera.CFrame
-            local moveDir = hum.MoveDirection
-            
-            if moveDir.Magnitude > 0 then
-                local lookVector = Camera.CFrame.LookVector
-                local rightVector = Camera.CFrame.RightVector
-                local localX = moveDir:Dot(Camera.CFrame.RightVector)
-                local localZ = moveDir:Dot(Camera.CFrame.LookVector)
-                FlyBV.Velocity = ((lookVector * localZ) + (rightVector * localX)).Unit * states.FlySpeed
+    -- Этот поток постоянно проверяет, включена ли функция кнопкой
+    task.spawn(function()
+        while object and object.Parent and highlight and bGui do
+            if states[stateKey] and targetPart then
+                local dist = math.floor((targetPart.Position - Camera.CFrame.Position).Magnitude)
+                label.Text = nameText .. " [" .. dist .. "m]"
+                highlight.Enabled = true
+                bGui.Enabled = true
             else
-                FlyBV.Velocity = Vector3.new(0, 0, 0)
+                -- Если в меню выключили — убираем ESP с карты полностью
+                highlight.Enabled = false
+                bGui.Enabled = false
             end
-        else
-            if FlyBV then FlyBV:Destroy() FlyBV = nil end
-            if FlyBG then FlyBG:Destroy() FlyBG = nil end
-        end
-    end)
-end)
-
--- Мега Скорость бега
-RunService.Heartbeat:Connect(function()
-    pcall(function()
-        local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-        if hum then hum.WalkSpeed = states.SpeedToggle and states.WalkSpeedVal or 16 end
-    end)
-end)
-
--- Локальная невидимость
-local function setInvis(state)
-    pcall(function()
-        local char = LocalPlayer.Character
-        if not char then return end
-        for _, part in pairs(char:GetDescendants()) do
-            if part:IsA("BasePart") or part:IsA("Decal") then 
-                if part.Name ~= "HumanoidRootPart" then part.Transparency = state and 1 or 0 end 
-            end
+            task.wait(0.3)
         end
     end)
 end
 
--- [[ СОЗДАНИЕ КНОПОК И СЛАЙДЕРОВ В МЕНЮ ]]
-createToggle("Режим полета (Fly)", false, function(active) updateQuickFlyVisual(active) end)
-createSlider("Скорость полета", 10, 250, 60, function(v) states.FlySpeed = v end)
-createToggle("Невидимость (Локально)", false, function(s) states.Invis = s setInvis(s) end)
-createToggle("Мега Скорость бега", false, function(s) states.SpeedToggle = s end)
-createToggle("Включить Box ESP (Враги)", false, function(s) states.ESP = s end)
-createToggle("Включить Аимбот", false, function(active) updateQuickAimVisual(active) end)
-createSlider("Радиус Аима (Aim FOV)", 30, 500, 150, function(v) states.Aim_FOV = v end)
+local function scanMap(object)
+    local name = object.Name:lower()
+    if name:find("child") or name:find("kid") or name:find("baby") or name:find("ребенок") then
+        createObjectESP(object, Color3.fromRGB(255, 215, 0), "👶 РЕБЕНОК", "ChildrenESP")
+    elseif name:find("bastion") or name:find("diamond") or name:find("бастион") then
+        createObjectESP(object, Color3.fromRGB(0, 191, 255), "💎 БАСТИОН", "BastionESP")
+    elseif name:find("item") or name:find("pickup") or name:find("scrap") or object:FindFirstChildOfClass("ClickDetector") then
+        createObjectESP(object, Color3.fromRGB(50, 255, 50), "📦 ПРЕДМЕТ", "ItemsESP")
+    end
+end
 
--- Проверка ключа при старте
+workspace.DescendantAdded:Connect(function(obj)
+    task.wait(0.1)
+    if obj and obj.Parent then scanMap(obj) end
+end)
+
+for _, desc in pairs(workspace:GetDescendants()) do scanMap(desc) end
+
+-- [[ ДОБАВЛЕНИЕ КНОПОК В МЕНЮ ]]
+createToggle("ESP на Предметы / Лут", "ItemsESP")
+createToggle("ESP на Детей (Задания)", "ChildrenESP")
+createToggle("ESP на Алмазный Бастион", "BastionESP")
+
+-- [[ ЛОГИКА ПРОВЕРКИ КЛЮЧА ]]
 CheckKeyBtn.MouseButton1Click:Connect(function()
     if KeyInput.Text == CORRECT_KEY then
         KeyFrame:Destroy()
         MainPanel.Visible = true
         ToggleMenuBtn.Visible = true
-        QuickAimBtn.Visible = true
-        QuickFlyBtn.Visible = true
     else
         KeyInput.Text = ""
         KeyInput.PlaceholderText = "НЕВЕРНЫЙ КЛЮЧ!"
