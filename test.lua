@@ -1,5 +1,5 @@
 -- =======================================================================
--- LORDIKHHH HUB | MURDER MYSTERY 2 | PERFECT WASD FLY, SILENT AIM & NOCLIP
+-- LORDIKHHH HUB | MURDER MYSTERY 2 | MAXED VERSION (ESP ALL & TP SHERIFF)
 -- =======================================================================
 
 local CorrectKey = "Lordikhhh"
@@ -30,6 +30,7 @@ local UserInputService = game:GetService("UserInputService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local EspEnabled = false
+local EspAllEnabled = false -- Переменная для ESP на всех игроков
 local CoinEspEnabled = false
 local AutoFarmEnabled = false
 local FlyEnabled = false
@@ -106,7 +107,6 @@ local function ToggleFly(enabled)
     if enabled then
         if FlyConnection then FlyConnection:Disconnect() end
         
-        -- Создаем физический контейнер для удержания позиции
         local BV = RootPart:FindFirstChild("FlightVelocity") or Instance.new("BodyVelocity")
         BV.Name = "FlightVelocity"
         BV.MaxForce = Vector3.new(9e9, 9e9, 9e9)
@@ -121,44 +121,30 @@ local function ToggleFly(enabled)
         BG.CFrame = RootPart.CFrame
         BG.Parent = RootPart
 
-        -- Цикл мгновенного отклика на нажатия клавиш WASD
         FlyConnection = RunService.RenderStepped:Connect(function()
             if not FlyEnabled or not RootPart or not RootPart:FindFirstChild("FlightVelocity") then 
                 if FlyConnection then FlyConnection:Disconnect() end
                 return 
             end
             
-            -- Отключаем стандартное падение персонажа
             Humanoid:ChangeState(Enum.HumanoidStateType.Physics)
 
             local Camera = Workspace.CurrentCamera
             local MoveDirection = Vector3.new(0, 0, 0)
 
-            -- Сбор векторов WASD в реальном времени относительно камеры
-            if UserInputService:IsKeyDown(Enum.KeyCode.W) then 
-                MoveDirection = MoveDirection + Camera.CFrame.LookVector 
-            end
-            if UserInputService:IsKeyDown(Enum.KeyCode.S) then 
-                MoveDirection = MoveDirection - Camera.CFrame.LookVector 
-            end
-            if UserInputService:IsKeyDown(Enum.KeyCode.A) then 
-                MoveDirection = MoveDirection - Camera.CFrame.RightVector 
-            end
-            if UserInputService:IsKeyDown(Enum.KeyCode.D) then 
-                MoveDirection = MoveDirection + Camera.CFrame.RightVector 
-            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.W) then MoveDirection = MoveDirection + Camera.CFrame.LookVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.S) then MoveDirection = MoveDirection - Camera.CFrame.LookVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.A) then MoveDirection = MoveDirection - Camera.CFrame.RightVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.D) then MoveDirection = MoveDirection + Camera.CFrame.RightVector end
 
-            -- Если ни одна кнопка не нажата, персонаж мертво зависает на месте
             RootPart.FlightVelocity.Velocity = MoveDirection * FlySpeed
             RootPart.FlightGyro.CFrame = Camera.CFrame
         end)
     else
-        -- Полная очистка при выключении
         if FlyConnection then FlyConnection:Disconnect() end
         if RootPart:FindFirstChild("FlightVelocity") then RootPart.FlightVelocity:Destroy() end
         if RootPart:FindFirstChild("FlightGyro") then RootPart.FlightGyro:Destroy() end
         
-        -- Возврат стандартной гравитации и анимаций
         Humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
     end
 end
@@ -196,7 +182,8 @@ end)
 -- =======================================================================
 
 local VisualsTab = Window:CreateTab("Визуалы", 4483362458)
-VisualsTab:CreateToggle({Name = "ESP (Убийца/Шериф)", Callback = function(v) EspEnabled = v end})
+VisualsTab:CreateToggle({Name = "ESP (Только Убийца/Шериф)", Callback = function(v) EspEnabled = v end})
+VisualsTab:CreateToggle({Name = "ESP на ВСЕХ игроков", Callback = function(v) EspAllEnabled = v end})
 
 local CombatTab = Window:CreateTab("Бой", 4483362458)
 CombatTab:CreateToggle({Name = "Silent Aim (Невидимый аим)", Callback = function(v) SilentAimEnabled = v end})
@@ -205,6 +192,15 @@ local TeleportTab = Window:CreateTab("Телепорты", 4483362458)
 TeleportTab:CreateButton({Name = "ТП к Убийце", Callback = function()
     for _, pl in pairs(Players:GetPlayers()) do
         if pl ~= LocalPlayer and GetPlayerRole(pl) == "Murderer" and pl.Character then
+            if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                LocalPlayer.Character.HumanoidRootPart.CFrame = pl.Character.HumanoidRootPart.CFrame * CFrame.new(0, 3, 0)
+            end
+        end
+    end
+end})
+TeleportTab:CreateButton({Name = "ТП к Шерифу", Callback = function()
+    for _, pl in pairs(Players:GetPlayers()) do
+        if pl ~= LocalPlayer and GetPlayerRole(pl) == "Sheriff" and pl.Character then
             if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
                 LocalPlayer.Character.HumanoidRootPart.CFrame = pl.Character.HumanoidRootPart.CFrame * CFrame.new(0, 3, 0)
             end
@@ -229,18 +225,45 @@ FarmTab:CreateSlider({Name = "Скорость полета", Range = {10, 200},
 local MiscTab = Window:CreateTab("Разное", 4483362458)
 MiscTab:CreateToggle({Name = "Прохождение сквозь стены (Noclip)", Callback = function(v) NoclipEnabled = v end})
 
--- ESP Loop
+-- Улучшенный ESP Loop (С поддержкой обычных игроков)
 RunService.RenderStepped:Connect(function()
     for _, pl in pairs(Players:GetPlayers()) do
-        if pl.Character then
+        if pl ~= LocalPlayer and pl.Character then
             local role = GetPlayerRole(pl)
             local hl = pl.Character:FindFirstChild("Highlight")
-            if EspEnabled and (role == "Murderer" or role == "Sheriff") then
-                if not hl then hl = Instance.new("Highlight", pl.Character) end
-                hl.FillColor = (role == "Murderer" and Color3.fromRGB(255,0,0) or Color3.fromRGB(0,0,255))
-            elseif hl then hl:Destroy() end
+            
+            -- Проверяем условия включения ESP
+            local shouldHighlight = false
+            local highlightColor = Color3.fromRGB(255, 255, 255)
+            
+            if EspAllEnabled then
+                shouldHighlight = true
+                if role == "Murderer" then
+                    highlightColor = Color3.fromRGB(255, 0, 0) -- Красный для Убийцы
+                elseif role == "Sheriff" then
+                    highlightColor = Color3.fromRGB(0, 0, 255) -- Синий для Шерифа
+                else
+                    highlightColor = Color3.fromRGB(0, 255, 0) -- Зеленый для Обычных игроков
+                end
+            elseif EspEnabled and (role == "Murderer" or role == "Sheriff") then
+                shouldHighlight = true
+                highlightColor = (role == "Murderer" and Color3.fromRGB(255, 0, 0) or Color3.fromRGB(0, 0, 255))
+            end
+            
+            -- Применяем подсветку
+            if shouldHighlight then
+                if not hl then 
+                    hl = Instance.new("Highlight")
+                    hl.Parent = pl.Character
+                end
+                hl.FillColor = highlightColor
+                hl.OutlineColor = Color3.fromRGB(255, 255, 255)
+                hl.FillOpacity = 0.5
+            elseif hl then 
+                hl:Destroy() 
+            end
         end
     end
 end)
 
-Rayfield:Notify({Title = "Успешно", Content = "Lordikhhh Hub полностью обновлен!", Duration = 3})
+Rayfield:Notify({Title = "Успешно", Content = "Lordikhhh Hub готов к игре!", Duration = 3})
