@@ -1,4 +1,4 @@
--- [[ 99 NIGHTS PREMIUM HUD: MULTI-TELEPORT EDITION ]]
+-- [[ 99 NIGHTS PREMIUM HUD: STRICT CHILDREN EDITION ]]
 local CoreGui = game:GetService("CoreGui")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -17,7 +17,7 @@ local states = {
     FlySpeed = 50
 }
 
-local UI_NAME = "Nights99_MultiTP_Hub"
+local UI_NAME = "Nights99_Strict_Hub"
 if CoreGui:FindFirstChild(UI_NAME) then CoreGui[UI_NAME]:Destroy() end
 
 local ScreenGui = Instance.new("ScreenGui")
@@ -93,13 +93,12 @@ MainPanel.Parent = ScreenGui
 local MainTitle = Instance.new("TextLabel")
 MainTitle.Size = UDim2.new(1, 0, 0, 45)
 MainTitle.BackgroundTransparency = 1
-MainTitle.Text = "99 NIGHTS MULTI-TP HUB"
+MainTitle.Text = "99 NIGHTS STRICT HUB"
 MainTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
 MainTitle.TextSize = 14
 MainTitle.Font = Enum.Font.GothamBold
 MainTitle.Parent = MainPanel
 
--- Контейнер для настроек (ESP, Полет)
 local SettingsScroll = Instance.new("ScrollingFrame")
 SettingsScroll.Size = UDim2.new(1, 0, 0, 210)
 SettingsScroll.Position = UDim2.new(0, 0, 0, 45)
@@ -108,7 +107,6 @@ SettingsScroll.CanvasSize = UDim2.new(0, 0, 0, 300)
 SettingsScroll.ScrollBarThickness = 4
 SettingsScroll.Parent = MainPanel
 
--- Разделитель разделов меню
 local Line = Instance.new("Frame")
 Line.Size = UDim2.new(0, 310, 0, 2)
 Line.Position = UDim2.new(0, 15, 0, 260)
@@ -120,14 +118,13 @@ local TpSectionTitle = Instance.new("TextLabel")
 TpSectionTitle.Size = UDim2.new(1, 0, 0, 25)
 TpSectionTitle.Position = UDim2.new(0, 15, 0, 268)
 TpSectionTitle.BackgroundTransparency = 1
-TpSectionTitle.Text = "СПИСОК ДЕТЕЙ ДЛЯ ТЕЛЕПОРТА:"
+TpSectionTitle.Text = "СПИСОК ДЕТЕЙ ДЛЯ ЗАДАНИЯ:"
 TpSectionTitle.TextColor3 = Color3.fromRGB(255, 0, 100)
 TpSectionTitle.TextSize = 11
 TpSectionTitle.Font = Enum.Font.GothamBold
 TpSectionTitle.TextXAlignment = Enum.TextXAlignment.Left
 TpSectionTitle.Parent = MainPanel
 
--- Нижний контейнер, куда динамически добавляются кнопки ТП к детям
 local TpButtonsContainer = Instance.new("ScrollingFrame")
 TpButtonsContainer.Size = UDim2.new(1, 0, 0, 115)
 TpButtonsContainer.Position = UDim2.new(0, 0, 0, 295)
@@ -163,7 +160,7 @@ ToggleMenuBtn.MouseButton1Click:Connect(function()
     ToggleMenuBtn.Text = MainPanel.Visible and "CLOSE MENU" or "OPEN MENU"
 end)
 
--- [[ КОНСТРУКТОРЫ СТАНДАРТНЫХ КНОПОК ]]
+-- [[ КОНСТРУКТОРЫ КНОПОК И СЛАЙДЕРОВ ]]
 local buttonY = 10
 local function createToggle(name, stateKey)
     local Frame = Instance.new("Frame")
@@ -283,7 +280,7 @@ local function createSlider(name, min, max, default, callback)
     buttonY = buttonY + 63
 end
 
--- [[ СИСТЕМА ДИНАМИЧЕСКИХ КНОПОК ТЕЛЕПОРТА ]]
+-- [[ СИСТЕМА ДИНАМИЧЕСКИХ КНОПОК ]]
 local childrenData = {}
 local childCounter = 0
 
@@ -295,9 +292,7 @@ end
 
 local function removeChildFromMenu(object)
     if childrenData[object] then
-        if childrenData[object].Button then
-            childrenData[object].Button:Destroy()
-        end
+        if childrenData[object].Button then childrenData[object].Button:Destroy() end
         childrenData[object] = nil
         updateTpListLayout()
     end
@@ -321,7 +316,6 @@ local function addChildToMenu(object, rootPart)
     childrenData[object] = { Root = rootPart, Button = TpBtn }
     updateTpListLayout()
 
-    -- Логика клика (Телепорт прямо на ребенка)
     TpBtn.MouseButton1Click:Connect(function()
         local myChar = LocalPlayer.Character
         local myRoot = myChar and myChar:FindFirstChild("HumanoidRootPart")
@@ -330,7 +324,6 @@ local function addChildToMenu(object, rootPart)
         end
     end)
 
-    -- Поток обновления расстояния на кнопке
     task.spawn(function()
         while object and object.Parent and rootPart and TpBtn do
             local myChar = LocalPlayer.Character
@@ -345,7 +338,7 @@ local function addChildToMenu(object, rootPart)
     end)
 end
 
--- [[ ЛОГИКА СИСТЕМЫ ESP ]]
+-- [[ СИСТЕМА СТРОГОГО ESP ]]
 local function createObjectESP(object, color, nameText, stateKey)
     if not object:IsA("Model") and not object:IsA("BasePart") then return end
     if object:FindFirstChild("NightsESP_Highlight") then return end
@@ -399,6 +392,7 @@ local function createObjectESP(object, color, nameText, stateKey)
     end)
 end
 
+-- СТРОГИЙ СКАНИРОВЩИК (Только целевые квестовые объекты)
 local function scanMap(object)
     if not object or not object.Parent then return end
     local name = object.Name:lower()
@@ -412,11 +406,16 @@ local function scanMap(object)
         return
     end
 
-    -- 2. Дети (С автоматическим добавлением кнопок ТП)
-    local hasHumanoid = object:FindFirstChildOfClass("Humanoid")
-    local isMonster = name:find("monster") or name:find("bot") or name:find("killer") or name:find("enemy") or name:find("враг")
+    -- 2. СТРОГАЯ проверка на детей для заданий
+    local prompt = object:FindFirstChildOfClass("ProximityPrompt") or object:FindFirstChildOfClass("ClickDetector")
+    local promptText = prompt and (prompt:IsA("ProximityPrompt") and prompt.ObjectText:lower() or "") or ""
+    local actionText = prompt and (prompt:IsA("ProximityPrompt") and prompt.ActionText:lower() or "") or ""
     
-    if (name:find("child") or name:find("kid") or name:find("baby") or name:find("ребенок") or name:find("спасти")) or (hasHumanoid and not isMonster) then
+    local hasChildName = name:find("child") or name:find("kid") or name:find("baby") or name:find("ребенок") or name:find("missing")
+    local hasQuestPrompt = promptText:find("child") or promptText:find("ребенок") or actionText:find("спасти") or actionText:find("взять") or actionText:find("rescue") or actionText:find("help")
+
+    -- Нам подходят только те, у кого совпадает имя ИЛИ на ком висит prompt взаимодействия для спасения
+    if hasChildName or (object:FindFirstChildOfClass("Humanoid") and hasQuestPrompt) then
         local root = object:FindFirstChild("HumanoidRootPart") or object:FindFirstChildWhichIsA("BasePart")
         if root then
             createObjectESP(object, Color3.fromRGB(255, 215, 0), "👶 РЕБЕНОК", "ChildrenESP")
@@ -425,8 +424,8 @@ local function scanMap(object)
         return
     end
 
-    -- 3. Предметы / Лут
-    if name:find("item") or name:find("pickup") or name:find("scrap") or object:FindFirstChildOfClass("ClickDetector") or object:FindFirstChildOfClass("ProximityPrompt") then
+    -- 3. Лут / Скрап (Только если включено)
+    if name:find("item") or name:find("pickup") or name:find("scrap") then
         createObjectESP(object, Color3.fromRGB(50, 255, 50), "📦 ПРЕДМЕТ", "ItemsESP")
     end
 end
@@ -438,20 +437,16 @@ end)
 
 for _, desc in pairs(workspace:GetDescendants()) do scanMap(desc) end
 
--- Очистка списка телепортов при удалении объектов из игры
 RunService.Heartbeat:Connect(function()
     for obj, _ in pairs(childrenData) do
-        if not obj or not obj.Parent then
-            removeChildFromMenu(obj)
-        end
+        if not obj or not obj.Parent then removeChildFromMenu(obj) end
     end
-    -- Если детей на карте вообще нет — сбрасываем общий счетчик номеров
     local empty = true
     for _ in pairs(childrenData) do empty = false break end
     if empty then childCounter = 0 end
 end)
 
--- [[ ЛОГИКА ФУНКЦИИ FLY (ПОЛЕТ) ]]
+-- [[ ПОЛЕТ (FLY) ]]
 local FlyBV, FlyBG
 RunService.RenderStepped:Connect(function()
     pcall(function()
@@ -485,7 +480,7 @@ RunService.RenderStepped:Connect(function()
     end)
 end)
 
--- [[ СОЗДАНИЕ КНОПОК И СЛАЙДЕРОВ ]]
+-- [[ ИНИЦИАЛИЗАЦИЯ ]]
 createToggle("ESP на Предметы / Лут", "ItemsESP")
 createToggle("ESP на Детей (Задания)", "ChildrenESP")
 createToggle("ESP на Алмазный Бастион", "BastionESP")
@@ -493,7 +488,6 @@ createToggle("ESP на Алмазный Бастион", "BastionESP")
 createToggle("Включить Полет (Fly)", "Fly")
 createSlider("Скорость полета", 20, 150, 50, function(v) states.FlySpeed = v end)
 
--- [[ ЛОГИКА ПРОВЕРКИ КЛЮЧА ]]
 CheckKeyBtn.MouseButton1Click:Connect(function()
     if KeyInput.Text == CORRECT_KEY then
         KeyFrame:Destroy()
