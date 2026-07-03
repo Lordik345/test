@@ -1,4 +1,4 @@
-local LocalCoreGui = game:GetService("CoreGui")
+local CoreGui = game:GetService("CoreGui")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -431,7 +431,7 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- [[ ЛОГИКА ФЛАЯ С НАСТРОЙКОЙ СКОРОСТИ И ПРОХОДОМ СКВОЗЬ СТЕНЫ (NOCLIP) ]]
+-- [[ ЛОГИКА ФЛАЯ С НАСТРОЙКОЙ СКОРОСТИ ]]
 local FlyBV, FlyBG
 RunService.RenderStepped:Connect(function()
     pcall(function()
@@ -440,12 +440,7 @@ RunService.RenderStepped:Connect(function()
         local hum = char and char:FindFirstChildOfClass("Humanoid")
         
         if states.Fly and root and hum then
-            -- Цикл отключения коллизии для пролета сквозь стены
-            for _, part in pairs(char:GetDescendants()) do
-                if part:IsA("BasePart") and part.CanCollide then
-                    part.CanCollide = false
-                end
-            end
+            -- Логика Noclip (CanCollide = false) полностью удалена отсюда
 
             if not FlyBV or FlyBV.Parent ~= root then 
                 FlyBV = Instance.new("BodyVelocity", root) 
@@ -516,6 +511,7 @@ CheckKeyBtn.MouseButton1Click:Connect(function()
         QuickFlyBtn.Visible = true
     else
         KeyInput.Text = ""
-        KeyInput.Placehol
-     end
- end)
+        KeyInput.PlaceholderText = "НЕВЕРНЫЙ КЛЮЧ!"
+        KeyInput.PlaceholderColor3 = Color3.fromRGB(255, 50, 50)
+    end
+end)
