@@ -1,4 +1,4 @@
--- [[ 99 NIGHTS MM2: ADVANCED EDITION ]]
+-- [[ 99 NIGHTS MM2: SILENT AIM & AUTO-SHOOT EDITION ]]
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
@@ -12,10 +12,12 @@ local states = {
     CoinESP = false,
     AutoCoin = false,
     Fly = false,
+    SilentAim = false,  -- Убийство при промахе
+    AutoShoot = false,  -- Автоматический выстрел
     FlySpeed = 45
 }
 
-local UI_NAME = "Nights99_MM2_Ultimate"
+local UI_NAME = "Nights99_MM2_GodMode"
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 if PlayerGui:FindFirstChild(UI_NAME) then PlayerGui[UI_NAME]:Destroy() end
 
@@ -80,7 +82,7 @@ local WelcomeTitle = Instance.new("TextLabel")
 WelcomeTitle.Size = UDim2.new(1, 0, 0, 50)
 WelcomeTitle.Position = UDim2.new(0, 0, 0, 15)
 WelcomeTitle.BackgroundTransparency = 1
-WelcomeTitle.Text = "MM2 ХАБ ОБНОВЛЕН!"
+WelcomeTitle.Text = "SILENT AIM & AUTO-FIRE ЗАГРУЖЕНЫ!"
 WelcomeTitle.TextColor3 = Color3.fromRGB(255, 50, 50)
 WelcomeTitle.TextSize = 14
 WelcomeTitle.Font = Enum.Font.GothamBold
@@ -97,10 +99,10 @@ CreatorLabel.TextSize = 13
 CreatorLabel.Font = Enum.Font.Gotham
 CreatorLabel.Parent = WelcomeFrame
 
--- [[ ГЛАВНОЕ МЕНЮ (НОВЫЙ СТИЛЬ) ]]
+-- [[ ГЛАВНОЕ МЕНЮ ]]
 local MainPanel = Instance.new("Frame")
-MainPanel.Size = UDim2.new(0, 310, 0, 410)
-MainPanel.Position = UDim2.new(0.5, -155, 0.3, -205)
+MainPanel.Size = UDim2.new(0, 310, 0, 440)
+MainPanel.Position = UDim2.new(0.5, -155, 0.3, -220)
 MainPanel.BackgroundColor3 = Color3.fromRGB(18, 15, 15)
 MainPanel.Visible = false
 styleElement(MainPanel, 12)
@@ -109,7 +111,7 @@ MainPanel.Parent = ScreenGui
 local MainTitle = Instance.new("TextLabel")
 MainTitle.Size = UDim2.new(1, 0, 0, 45)
 MainTitle.BackgroundTransparency = 1
-MainTitle.Text = "99 NIGHTS MM2 V2"
+MainTitle.Text = "99 NIGHTS MM2 V4"
 MainTitle.TextColor3 = Color3.fromRGB(255, 50, 50)
 MainTitle.TextSize = 14
 MainTitle.Font = Enum.Font.GothamBold
@@ -119,7 +121,7 @@ local SettingsScroll = Instance.new("ScrollingFrame")
 SettingsScroll.Size = UDim2.new(1, 0, 1, -55)
 SettingsScroll.Position = UDim2.new(0, 0, 0, 45)
 SettingsScroll.BackgroundTransparency = 1
-SettingsScroll.CanvasSize = UDim2.new(0, 0, 0, 350)
+SettingsScroll.CanvasSize = UDim2.new(0, 0, 0, 430)
 SettingsScroll.ScrollBarThickness = 3
 SettingsScroll.Parent = MainPanel
 
@@ -272,6 +274,65 @@ local function createActionButton(name)
     buttonY = buttonY + 42
 end
 
+-- [[ ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ПОИСКА РОЛЕЙ ]]
+local function getMurderer()
+    for _, plr in pairs(Players:GetPlayers()) do
+        if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+            if plr.Backpack:FindFirstChild("Knife") or plr.Character:FindFirstChild("Knife") then
+                return plr
+            end
+        end
+    end
+    return nil
+end
+
+local function getPlayerRole(plr)
+    if plr.Backpack:FindFirstChild("Knife") or (plr.Character and plr.Character:FindFirstChild("Knife")) then
+        return "Murderer", Color3.fromRGB(255, 0, 50)
+    elseif plr.Backpack:FindFirstChild("Gun") or (plr.Character and plr.Character:FindFirstChild("Gun")) then
+        return "Sheriff", Color3.fromRGB(0, 150, 255)
+    end
+    return "Innocent", Color3.fromRGB(50, 255, 50)
+end
+
+-- [[ МОДИФИКАЦИЯ СТРЕЛЬБЫ (SILENT AIM / СТРЕЛЬБА МИМО) ]]
+local oldNamecall
+oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
+    local method = getnamecallmethod()
+    local args = {...}
+    
+    if states.SilentAim and method == "InvokeServer" and tostring(self) == "ShootGun" then
+        local murderer = getMurderer()
+        if murderer and murderer.Character and murderer.Character:FindFirstChild("HumanoidRootPart") then
+            -- Перехватываем направление выстрела и подменяем координаты на торс Убийцы
+            args[2] = murderer.Character.HumanoidRootPart.Position
+            return oldNamecall(self, unpack(args))
+        end
+    end
+    return oldNamecall(self, ...)
+end)
+
+-- [[ АВТО-СТРЕЛЬБА ]]
+task.spawn(function()
+    while true do
+        if states.AutoShoot then
+            local myChar = LocalPlayer.Character
+            local gun = myChar and myChar:FindFirstChild("Gun")
+            
+            if gun and gun:FindFirstChild("KnifeScript") then -- Проверка структуры оружия в MM2
+                local murderer = getMurderer()
+                if murderer and murderer.Character and murderer.Character:FindFirstChild("HumanoidRootPart") then
+                    -- Если включен также и SilentAim, клик уйдет точно в него, даже если мы смотрим в стену
+                    local targetPos = murderer.Character.HumanoidRootPart.Position
+                    gun.KnifeScript.OnServerInvoke:InvokeServer(targetPos)
+                    task.wait(1) -- Задержка между выстрелами, чтобы избежать серверного кика
+                end
+            end
+        end
+        task.wait(0.2)
+    end
+end)
+
 -- [[ СИСТЕМА ФЛАЙ (ПОЛЕТ) ]]
 local FlyBV
 RunService.RenderStepped:Connect(function()
@@ -292,16 +353,7 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- [[ ЛОГИКА ОПРЕДЕЛЕНИЯ РОЛЕЙ И ESP ]]
-local function getPlayerRole(plr)
-    if plr.Backpack:FindFirstChild("Knife") or (plr.Character and plr.Character:FindFirstChild("Knife")) then
-        return "Murderer", Color3.fromRGB(255, 0, 50)
-    elseif plr.Backpack:FindFirstChild("Gun") or (plr.Character and plr.Character:FindFirstChild("Gun")) then
-        return "Sheriff", Color3.fromRGB(0, 150, 255)
-    end
-    return "Innocent", Color3.fromRGB(50, 255, 50)
-end
-
+-- [[ ESP НА РОЛИ ]]
 task.spawn(function()
     while true do
         if states.RoleESP then
@@ -378,6 +430,8 @@ end)
 
 -- [[ ИНИЦИАЛИЗАЦИЯ ИНТЕРФЕЙСА ]]
 createToggle("Показывать Роли (Wallhack)", "RoleESP")
+createToggle("🎯 Silent Aim (Попадание при промахе)", "SilentAim")
+createToggle("🤖 Авто-стрельба в Убийцу", "AutoShoot")
 createToggle("Подсветка монет", "CoinESP")
 createToggle("Плавный авто-сбор монет", "AutoCoin")
 createToggle("Включить Полет (Fly)", "Fly")
