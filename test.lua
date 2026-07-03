@@ -1,4 +1,4 @@
--- [[ 99 NIGHTS LITE HUB: WELCOME SCREEN EDITION ]]
+-- [[ 99 NIGHTS LITE HUB: WOOD & METAL EDITION ]]
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -13,10 +13,11 @@ local states = {
     ChildrenESP = false,
     BastionESP = false,
     Fly = false,
+    AutoFarmTree = false, -- Новая функция фарминга
     FlySpeed = 50
 }
 
-local UI_NAME = "Nights99_Welcome_Hub"
+local UI_NAME = "Nights99_Metal_Hub"
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 if PlayerGui:FindFirstChild(UI_NAME) then PlayerGui[UI_NAME]:Destroy() end
 
@@ -101,8 +102,8 @@ CreatorLabel.Parent = WelcomeFrame
 
 -- [[ ГЛАВНОЕ МЕНЮ ]]
 local MainPanel = Instance.new("Frame")
-MainPanel.Size = UDim2.new(0, 320, 0, 430)
-MainPanel.Position = UDim2.new(0.5, -160, 0.3, -215)
+MainPanel.Size = UDim2.new(0, 320, 0, 460)
+MainPanel.Position = UDim2.new(0.5, -160, 0.3, -230)
 MainPanel.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
 MainPanel.Visible = false
 styleElement(MainPanel, 12)
@@ -118,16 +119,16 @@ MainTitle.Font = Enum.Font.GothamBold
 MainTitle.Parent = MainPanel
 
 local SettingsScroll = Instance.new("ScrollingFrame")
-SettingsScroll.Size = UDim2.new(1, 0, 0, 260)
+SettingsScroll.Size = UDim2.new(1, 0, 0, 290)
 SettingsScroll.Position = UDim2.new(0, 0, 0, 40)
 SettingsScroll.BackgroundTransparency = 1
-SettingsScroll.CanvasSize = UDim2.new(0, 0, 0, 380)
+SettingsScroll.CanvasSize = UDim2.new(0, 0, 0, 460) -- Немного увеличили высоту прокрутки под новые кнопки
 SettingsScroll.ScrollBarThickness = 2
 SettingsScroll.Parent = MainPanel
 
 local TpSectionTitle = Instance.new("TextLabel")
 TpSectionTitle.Size = UDim2.new(1, 0, 0, 20)
-TpSectionTitle.Position = UDim2.new(0, 15, 0, 305)
+TpSectionTitle.Position = UDim2.new(0, 15, 0, 335)
 TpSectionTitle.BackgroundTransparency = 1
 TpSectionTitle.Text = "ТЕЛЕПОРТ К ДЕТЯМ:"
 TpSectionTitle.TextColor3 = Color3.fromRGB(255, 0, 100)
@@ -138,7 +139,7 @@ TpSectionTitle.Parent = MainPanel
 
 local TpButtonsContainer = Instance.new("ScrollingFrame")
 TpButtonsContainer.Size = UDim2.new(1, 0, 0, 95)
-TpButtonsContainer.Position = UDim2.new(0, 0, 0, 325)
+TpButtonsContainer.Position = UDim2.new(0, 0, 0, 355)
 TpButtonsContainer.BackgroundTransparency = 1
 TpButtonsContainer.CanvasSize = UDim2.new(0, 0, 0, 100)
 TpButtonsContainer.ScrollBarThickness = 2
@@ -166,6 +167,49 @@ ToggleMenuBtn.MouseButton1Click:Connect(function()
     MainPanel.Visible = not MainPanel.Visible
     ToggleMenuBtn.Text = MainPanel.Visible and "СКРЫТЬ" or "МЕНЮ"
 end)
+
+-- [[ ЛОГИКА АВТО-РУБКИ ДЕРЕВА ]]
+local function startAutoFarmTree()
+    task.spawn(function()
+        while states.AutoFarmTree do
+            local myRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+            if myRoot then
+                local closestTree = nil
+                local minDistance = math.huge -- Ищет по всей карте, начиная с ближайших
+
+                for _, obj in pairs(workspace:GetDescendants()) do
+                    if obj:IsA("Model") and (obj.Name:lower():find("tree") or obj.Name:lower():find("дерев")) then
+                        -- Исключаем палатку/сданные деревья, если у них меняется имя
+                        local root = obj:FindFirstChild("HumanoidRootPart") or obj:FindFirstChildWhichIsA("BasePart")
+                        if root and not obj:FindFirstChild("Tent") and not obj:FindFirstChild("tent") then
+                            local dist = (root.Position - myRoot.Position).Magnitude
+                            if dist < minDistance then
+                                minDistance = dist
+                                closestTree = obj
+                            end
+                        end
+                    end
+                end
+
+                if closestTree then
+                    local root = closestTree:FindFirstChild("HumanoidRootPart") or closestTree:FindFirstChildWhichIsA("BasePart")
+                    if root then
+                        -- Телепортируем игрока к дереву (чуть сбоку, чтобы сработал Prompt)
+                        myRoot.CFrame = root.CFrame * CFrame.new(0, 0, 3)
+                        task.wait(0.15) -- Короткая пауза для прогрузки
+
+                        -- Ищем и активируем ProximityPrompt рубки
+                        local prompt = closestTree:FindFirstChildWhichIsA("ProximityPrompt", true)
+                        if prompt then
+                            fireproximityprompt(prompt)
+                        end
+                    end
+                end
+            end
+            task.wait(0.8) -- Скорость проверки и прыжков между деревьями
+        end
+    end)
+end
 
 -- [[ КОНСТРУКТОРЫ КНОПОК ]]
 local buttonY = 5
@@ -201,6 +245,11 @@ local function createToggle(name, stateKey)
         states[stateKey] = not states[stateKey]
         ToggleBtn.BackgroundColor3 = states[stateKey] and Color3.fromRGB(255, 0, 100) or Color3.fromRGB(60, 60, 70)
         ToggleBtn.Text = states[stateKey] and "ВКЛ" or "ВЫКЛ"
+        
+        -- Если включили автофарм дерева — запускаем цикл
+        if stateKey == "AutoFarmTree" and states.AutoFarmTree then
+            startAutoFarmTree()
+        end
     end)
     buttonY = buttonY + 40
 end
@@ -353,6 +402,8 @@ local function teleportItemsToMe(itemType)
                 isTarget = true
             elseif itemType == "food" and (name:find("food") or name:find("med") or name:find("cola") or name:find("apple") or pText:find("food") or pText:find("med") or pText:find("eat")) then
                 isTarget = true
+            elseif itemType == "metal" and (name:find("metal") or name:find("iron") or name:find("steel") or name:find("желез") or name:find("метал") or pText:find("metal") or pText:find("iron")) then
+                isTarget = true
             end
             
             if isTarget then
@@ -384,25 +435,22 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- [[ ИНИЦИАЛИЗАЦИЯ ]]
+-- [[ ИНИЦИАЛИЗАЦИЯ КНОПОК ]]
 createToggle("ESP на Лут", "ItemsESP")
 createToggle("ESP на Детей", "ChildrenESP")
 createToggle("ESP на Бастион", "BastionESP")
 createToggle("Включить Полет", "Fly")
+createToggle("🌳 Авто-фарм дерева", "AutoFarmTree") -- Новый тумблер в меню
 
 createActionButton("🔥 Стянуть ресурсы (Уголь/Дрова/Бензин)", Color3.fromRGB(200, 100, 0), function() teleportItemsToMe("resources") end)
 createActionButton("🍎 Стянуть припасы (Еда/Аптечки)", Color3.fromRGB(50, 150, 50), function() teleportItemsToMe("food") end)
+createActionButton("⚙️ Стянуть металл", Color3.fromRGB(120, 130, 140), function() teleportItemsToMe("metal") end)
 
 -- ЛОГИКА ПЕРЕХОДОВ МЕЖДУ ОКНАМИ
 CheckKeyBtn.MouseButton1Click:Connect(function()
     if KeyInput.Text == CORRECT_KEY then
-        -- 1. Удаляем окно ключа
         KeyFrame:Destroy()
-        
-        -- 2. Показываем окно благодарности
         WelcomeFrame.Visible = true
-        
-        -- 3. Ждем 2.5 секунды, удаляем его и открываем чит-меню
         task.wait(2.5)
         WelcomeFrame:Destroy()
         MainPanel.Visible = true
