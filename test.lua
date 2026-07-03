@@ -1,4 +1,4 @@
--- [[ 99 NIGHTS MM2: SILENT AIM & AUTO-SHOOT EDITION ]]
+-- [[ 99 NIGHTS MM2: TP-HIT & FLY EDITION ]]
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
@@ -12,12 +12,12 @@ local states = {
     CoinESP = false,
     AutoCoin = false,
     Fly = false,
-    SilentAim = false,  -- Убийство при промахе
-    AutoShoot = false,  -- Автоматический выстрел
+    TPShot = false,    -- Телепорт + выстрел
+    AutoShoot = false,  -- Автоматический триггер
     FlySpeed = 45
 }
 
-local UI_NAME = "Nights99_MM2_GodMode"
+local UI_NAME = "Nights99_MM2_Blink"
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 if PlayerGui:FindFirstChild(UI_NAME) then PlayerGui[UI_NAME]:Destroy() end
 
@@ -82,7 +82,7 @@ local WelcomeTitle = Instance.new("TextLabel")
 WelcomeTitle.Size = UDim2.new(1, 0, 0, 50)
 WelcomeTitle.Position = UDim2.new(0, 0, 0, 15)
 WelcomeTitle.BackgroundTransparency = 1
-WelcomeTitle.Text = "SILENT AIM & AUTO-FIRE ЗАГРУЖЕНЫ!"
+WelcomeTitle.Text = "МЕХАНИКА ТЕЛЕПОРТА ЗА СПИНУ ГОТОВА!"
 WelcomeTitle.TextColor3 = Color3.fromRGB(255, 50, 50)
 WelcomeTitle.TextSize = 14
 WelcomeTitle.Font = Enum.Font.GothamBold
@@ -111,7 +111,7 @@ MainPanel.Parent = ScreenGui
 local MainTitle = Instance.new("TextLabel")
 MainTitle.Size = UDim2.new(1, 0, 0, 45)
 MainTitle.BackgroundTransparency = 1
-MainTitle.Text = "99 NIGHTS MM2 V4"
+MainTitle.Text = "99 NIGHTS MM2 V5"
 MainTitle.TextColor3 = Color3.fromRGB(255, 50, 50)
 MainTitle.TextSize = 14
 MainTitle.Font = Enum.Font.GothamBold
@@ -274,7 +274,7 @@ local function createActionButton(name)
     buttonY = buttonY + 42
 end
 
--- [[ ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ПОИСКА РОЛЕЙ ]]
+-- [[ ПОИСК УБИЙЦЫ ]]
 local function getMurderer()
     for _, plr in pairs(Players:GetPlayers()) do
         if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
@@ -295,41 +295,64 @@ local function getPlayerRole(plr)
     return "Innocent", Color3.fromRGB(50, 255, 50)
 end
 
--- [[ МОДИФИКАЦИЯ СТРЕЛЬБЫ (SILENT AIM / СТРЕЛЬБА МИМО) ]]
+-- [[ ЛОГИКА ТЕЛЕПОРТА ЗА СПИНУ + ВЫСТРЕЛ ]]
+local function executeBlinkShot()
+    local myChar = LocalPlayer.Character
+    local myRoot = myChar and myChar:FindFirstChild("HumanoidRootPart")
+    local gun = myChar and myChar:FindFirstChild("Gun")
+    
+    -- Ищем Remote-событие стрельбы в пистолете (поддерживает ShootGun и аналоги)
+    local shootRemote = gun and (gun:FindFirstChild("ShootGun") or gun:FindFirstChildOfClass("RemoteFaction") or gun:FindFirstChildOfClass("RemoteEvent"))
+    
+    if myRoot and gun and shootRemote then
+        local murderer = getMurderer()
+        if murderer and murderer.Character and murderer.Character:FindFirstChild("HumanoidRootPart") then
+            local mudRoot = murderer.Character.HumanoidRootPart
+            
+            -- Сохраняем старую позицию
+            local oldCFrame = myRoot.CFrame
+            
+            -- ТП за спину убийце (вычисляем позицию сзади его взгляда на 3 студа)
+            myRoot.CFrame = mudRoot.CFrame * CFrame.new(0, 0, 3.5)
+            task.wait(0.05) -- Микро-пауза для синхронизации с сервером
+            
+            -- Делаем выстрел прямо в торс
+            if shootRemote:IsA("RemoteFunction") then
+                shootRemote:InvokeServer(mudRoot.Position)
+            elseif shootRemote:IsA("RemoteEvent") then
+                shootRemote:FireServer(mudRoot.Position)
+            end
+            
+            task.wait(0.05)
+            -- Мгновенное возвращение на исходную позицию
+            myRoot.CFrame = oldCFrame
+        end
+    end
+end
+
+-- Перехват обычного клика мыши/тапа, если включен TP-Shot
 local oldNamecall
 oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
     local method = getnamecallmethod()
-    local args = {...}
-    
-    if states.SilentAim and method == "InvokeServer" and tostring(self) == "ShootGun" then
-        local murderer = getMurderer()
-        if murderer and murderer.Character and murderer.Character:FindFirstChild("HumanoidRootPart") then
-            -- Перехватываем направление выстрела и подменяем координаты на торс Убийцы
-            args[2] = murderer.Character.HumanoidRootPart.Position
-            return oldNamecall(self, unpack(args))
-        end
+    if states.TPShot and (method == "InvokeServer" or method == "FireServer") and (tostring(self) == "ShootGun" or self.Name == "ShootGun") then
+        task.spawn(executeBlinkShot)
+        return nil -- Отменяем обычную пулю, так как мы выстрелили через ТП
     end
     return oldNamecall(self, ...)
 end)
 
--- [[ АВТО-СТРЕЛЬБА ]]
+-- [[ ЦИКЛ АВТО-СТРЕЛЬБЫ ПО ТЕЛЕПОРТУ ]]
 task.spawn(function()
     while true do
-        if states.AutoShoot then
+        if states.AutoShoot and states.TPShot then
             local myChar = LocalPlayer.Character
-            local gun = myChar and myChar:FindFirstChild("Gun")
-            
-            if gun and gun:FindFirstChild("KnifeScript") then -- Проверка структуры оружия в MM2
-                local murderer = getMurderer()
-                if murderer and murderer.Character and murderer.Character:FindFirstChild("HumanoidRootPart") then
-                    -- Если включен также и SilentAim, клик уйдет точно в него, даже если мы смотрим в стену
-                    local targetPos = murderer.Character.HumanoidRootPart.Position
-                    gun.KnifeScript.OnServerInvoke:InvokeServer(targetPos)
-                    task.wait(1) -- Задержка между выстрелами, чтобы избежать серверного кика
-                end
+            if myChar and (myChar:FindFirstChild("Gun") or LocalPlayer.Backpack:FindFirstChild("Gun")) then
+                -- Если пистолет в руках или рюкзаке, автоматически выполняем блинкаут
+                executeBlinkShot()
+                task.wait(1.5) -- Кулдаун, чтобы античит не кикнул за частые ТП
             end
         end
-        task.wait(0.2)
+        task.wait(0.3)
     end
 end)
 
@@ -430,8 +453,8 @@ end)
 
 -- [[ ИНИЦИАЛИЗАЦИЯ ИНТЕРФЕЙСА ]]
 createToggle("Показывать Роли (Wallhack)", "RoleESP")
-createToggle("🎯 Silent Aim (Попадание при промахе)", "SilentAim")
-createToggle("🤖 Авто-стрельба в Убийцу", "AutoShoot")
+createToggle("🎯 TP-Shot (ТП к Убийце + Выстрел)", "TPShot")
+createToggle("🤖 Авто-выстрел через ТП", "AutoShoot")
 createToggle("Подсветка монет", "CoinESP")
 createToggle("Плавный авто-сбор монет", "AutoCoin")
 createToggle("Включить Полет (Fly)", "Fly")
