@@ -1,308 +1,281 @@
--- =======================================================================
--- LORDIKHHH HUB | MULTI-GAME (MM2 & FISCH) | ULTIMATE VERSION
--- =======================================================================
-
-local CorrectKey = "Lordikhhh"
-local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
-
-local Window = Rayfield:CreateWindow({
-   Name = "Lordikhhh Hub | MM2 & Fisch",
-   LoadingTitle = "Загрузка Lordikhhh Hub...",
-   LoadingSubtitle = "by Lordikhhh",
-   ConfigurationSaving = { Enabled = false },
-   KeySystem = true, 
-   KeySettings = {
-      Title = "Ключ-Система | Lordikhhh",
-      Subtitle = "Введите ключ доступа",
-      Note = "Правильный ключ: Lordikhhh",
-      FileName = "LordikhhhKeyConfig",
-      SaveKey = true, 
-      Key = {CorrectKey}
-   }
-})
-
--- Сервисы и переменные
+-- [[ TSB Script with Key System, GUI & Auto-Combo for Delta ]] --
 local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
 local RunService = game:GetService("RunService")
-local Workspace = game:GetService("Workspace")
 local UserInputService = game:GetService("UserInputService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local CoreGui = game:GetService("CoreGui")
 
--- Общие переменные
-local EspEnabled = false
-local EspAllEnabled = false
-local AutoFarmEnabled = false
-local FlyEnabled = false
-local SilentAimEnabled = false
-local NoclipEnabled = false
-local FlySpeed = 50
-local FlyConnection = nil
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
 
--- Переменные для FISCH
-local AutoFishEnabled = false
-local WalkOnWaterEnabled = false
-local WaterPlatform = nil
+-- НАСТРОЙКИ
+local CORRECT_KEY = "TSB2026"
+local Settings = {
+    AutoFight = false,
+    AutoCombo = false,
+    FlyEnabled = false,
+    FlySpeed = 60,
+    AttackRange = 25
+}
 
--- =======================================================================
--- ОБЩИЕ ФУНКЦИИ И MM2 ЛОГИКА
--- =======================================================================
+-- === 1. ИНТЕРФЕЙС (GUI) ===
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "TSB_Delta_Hub_Combo"
+ScreenGui.Parent = (gethui and gethui()) or CoreGui or LocalPlayer:WaitForChild("PlayerGui")
 
-local function GetPlayerRole(player)
-    if player.Backpack:FindFirstChild("Knife") or (player.Character and player.Character:FindFirstChild("Knife")) then
-        return "Murderer"
-    elseif player.Backpack:FindFirstChild("Gun") or (player.Character and player.Character:FindFirstChild("Gun")) then
-        return "Sheriff"
+-- КНОПКА ОТКРЫТИЯ/ЗАКРЫТИЯ МЕНЮ
+local OpenBtn = Instance.new("TextButton")
+OpenBtn.Size = UDim2.new(0, 50, 0, 50)
+OpenBtn.Position = UDim2.new(0.02, 0, 0.4, 0)
+OpenBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+OpenBtn.Text = "TSB"
+OpenBtn.TextColor3 = Color3.fromRGB(255, 85, 85)
+OpenBtn.TextSize = 18
+OpenBtn.Font = Enum.Font.SourceSansBold
+OpenBtn.Active = true
+OpenBtn.Draggable = true
+OpenBtn.Parent = ScreenGui
+
+local OpenCorner = Instance.new("UICorner")
+OpenCorner.CornerRadius = UDim.new(0, 12)
+OpenCorner.Parent = OpenBtn
+
+-- ГЛАВНОЕ ОКНО
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0, 300, 0, 310)
+MainFrame.Position = UDim2.new(0.5, -150, 0.5, -155)
+MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Parent = ScreenGui
+
+local MainCorner = Instance.new("UICorner")
+MainCorner.CornerRadius = UDim.new(0, 10)
+MainCorner.Parent = MainFrame
+
+-- ЗАГОЛОВОК
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, 0, 0, 40)
+Title.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+Title.Text = "TSB HUB | Delta Edition"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextSize = 16
+Title.Font = Enum.Font.SourceSansBold
+Title.Parent = MainFrame
+
+local TitleCorner = Instance.new("UICorner")
+TitleCorner.CornerRadius = UDim.new(0, 10)
+TitleCorner.Parent = Title
+
+-- === ФОРМА ВВОДА КЛЮЧА ===
+local KeyFrame = Instance.new("Frame")
+KeyFrame.Size = UDim2.new(1, 0, 1, -40)
+KeyFrame.Position = UDim2.new(0, 0, 0, 40)
+KeyFrame.BackgroundTransparency = 1
+KeyFrame.Parent = MainFrame
+
+local KeyInput = Instance.new("TextBox")
+KeyInput.Size = UDim2.new(0.8, 0, 0, 40)
+KeyInput.Position = UDim2.new(0.1, 0, 0.2, 0)
+KeyInput.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+KeyInput.PlaceholderText = "Введите ключ..."
+KeyInput.Text = ""
+KeyInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+KeyInput.TextSize = 14
+KeyInput.Font = Enum.Font.SourceSans
+KeyInput.Parent = KeyFrame
+
+local KeyBtn = Instance.new("TextButton")
+KeyBtn.Size = UDim2.new(0.8, 0, 0, 40)
+KeyBtn.Position = UDim2.new(0.1, 0, 0.5, 0)
+KeyBtn.BackgroundColor3 = Color3.fromRGB(255, 85, 85)
+KeyBtn.Text = "Войти"
+KeyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+KeyBtn.TextSize = 16
+KeyBtn.Font = Enum.Font.SourceSansBold
+KeyBtn.Parent = KeyFrame
+
+-- === ПАНЕЛЬ ФУНКЦИЙ ===
+local HackFrame = Instance.new("Frame")
+HackFrame.Size = UDim2.new(1, 0, 1, -40)
+HackFrame.Position = UDim2.new(0, 0, 0, 40)
+HackFrame.BackgroundTransparency = 1
+HackFrame.Visible = false
+HackFrame.Parent = MainFrame
+
+local AutoFightBtn = Instance.new("TextButton")
+AutoFightBtn.Size = UDim2.new(0.8, 0, 0, 40)
+AutoFightBtn.Position = UDim2.new(0.1, 0, 0.08, 0)
+AutoFightBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+AutoFightBtn.Text = "Auto Fight: OFF"
+AutoFightBtn.TextColor3 = Color3.fromRGB(255, 85, 85)
+AutoFightBtn.TextSize = 15
+AutoFightBtn.Font = Enum.Font.SourceSansBold
+AutoFightBtn.Parent = HackFrame
+
+local AutoComboBtn = Instance.new("TextButton")
+AutoComboBtn.Size = UDim2.new(0.8, 0, 0, 40)
+AutoComboBtn.Position = UDim2.new(0.1, 0, 0.38, 0)
+AutoComboBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+AutoComboBtn.Text = "Auto Combo: OFF"
+AutoComboBtn.TextColor3 = Color3.fromRGB(255, 85, 85)
+AutoComboBtn.TextSize = 15
+AutoComboBtn.Font = Enum.Font.SourceSansBold
+AutoComboBtn.Parent = HackFrame
+
+local FlyBtn = Instance.new("TextButton")
+FlyBtn.Size = UDim2.new(0.8, 0, 0, 40)
+FlyBtn.Position = UDim2.new(0.1, 0, 0.68, 0)
+FlyBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+FlyBtn.Text = "Fly: OFF"
+FlyBtn.TextColor3 = Color3.fromRGB(255, 85, 85)
+FlyBtn.TextSize = 15
+FlyBtn.Font = Enum.Font.SourceSansBold
+FlyBtn.Parent = HackFrame
+
+-- Переключение отображения
+OpenBtn.MouseButton1Click:Connect(function()
+    MainFrame.Visible = not MainFrame.Visible
+end)
+
+-- Авторизация
+KeyBtn.MouseButton1Click:Connect(function()
+    if KeyInput.Text == CORRECT_KEY then
+        KeyFrame.Visible = false
+        HackFrame.Visible = true
+        Title.Text = "TSB HUB | Авторизовано"
     else
-        return "Innocent"
+        KeyInput.Text = ""
+        KeyInput.PlaceholderText = "Неверный ключ!"
+    end
+end)
+
+-- === 2. ЛОГИКА АТАКИ И ПОЛЁТА ===
+local function doClick()
+    if mouse1click then
+        mouse1click()
+    else
+        game:GetService("VirtualUser"):Button1Down(Vector2.new(0,0), Camera.CFrame)
+        task.wait(0.01)
+        game:GetService("VirtualUser"):Button1Up(Vector2.new(0,0), Camera.CFrame)
     end
 end
 
-local function GetDroppedGun()
-    for _, v in pairs(Workspace:GetDescendants()) do
-        if (v.Name == "GunDrop" or v.Name == "Gun") and not v:IsDescendantOf(Players) then
-            return v
-        end
-    end
-    return nil
+local function useSkill(skillNumber)
+    local key = Enum.KeyCode["Button" .. skillNumber] or Enum.KeyCode[tostring(skillNumber)]
+    game:GetService("VirtualInputManager"):SendKeyEvent(true, key, false, game)
+    task.wait(0.05)
+    game:GetService("VirtualInputManager"):SendKeyEvent(false, key, false, game)
 end
 
-local function GetClosestTarget()
-    local ClosestPlayer = nil
-    local MaxDistance = 1000
-    local MousePos = UserInputService:GetMouseLocation()
-    
-    for _, Player in pairs(Players:GetPlayers()) do
-        if Player ~= LocalPlayer and Player.Character and Player.Character:FindFirstChild("Head") and Player.Character:FindFirstChild("Humanoid") and Player.Character.Humanoid.Health > 0 then
-            local ScreenPos, OnScreen = Workspace.CurrentCamera:WorldToViewportPoint(Player.Character.Head.Position)
-            if OnScreen then
-                local Distance = (Vector2.new(MousePos.X, MousePos.Y) - Vector2.new(ScreenPos.X, ScreenPos.Y)).Magnitude
-                if Distance < MaxDistance then
-                    MaxDistance = Distance
-                    ClosestPlayer = Player
+local function getClosestEnemy()
+    local closest, minDist = nil, Settings.AttackRange
+    local myChar = LocalPlayer.Character
+    if not myChar or not myChar:FindFirstChild("HumanoidRootPart") then return nil end
+
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            local enemyHum = player.Character:FindFirstChildOfClass("Humanoid")
+            if enemyHum and enemyHum.Health > 0 then
+                local dist = (myChar.HumanoidRootPart.Position - player.Character.HumanoidRootPart.Position).Magnitude
+                if dist < minDist then
+                    minDist = dist
+                    closest = player.Character
                 end
             end
         end
     end
-    return ClosestPlayer
+    return closest
 end
 
--- Silent Aim Hook
-local oldFireServer; oldFireServer = hookmetamethod(game, "__namecall", function(self, ...)
-    local args = {...}
-    local method = getnamecallmethod()
-    if SilentAimEnabled and method == "FireServer" and (self.Name == "ShootGun" or self.Name == "Shoot") then
-        local Target = GetClosestTarget()
-        if Target and Target.Character and Target.Character:FindFirstChild("Head") then
-            args[1] = Target.Character.Head.Position
-            return oldFireServer(self, unpack(args))
-        end
-    end
-    return oldFireServer(self, ...)
+-- Кнопки GUI
+AutoFightBtn.MouseButton1Click:Connect(function()
+    Settings.AutoFight = not Settings.AutoFight
+    AutoFightBtn.Text = Settings.AutoFight and "Auto Fight: ON" or "Auto Fight: OFF"
+    AutoFightBtn.TextColor3 = Settings.AutoFight and Color3.fromRGB(85, 255, 85) or Color3.fromRGB(255, 85, 85)
 end)
 
--- Fly logic
-local function ToggleFly(enabled)
-    local Character = LocalPlayer.Character
-    local RootPart = Character and Character:FindFirstChild("HumanoidRootPart")
-    local Humanoid = Character and Character:FindFirstChild("Humanoid")
-    if not RootPart or not Humanoid then return end
+AutoComboBtn.MouseButton1Click:Connect(function()
+    Settings.AutoCombo = not Settings.AutoCombo
+    AutoComboBtn.Text = Settings.AutoCombo and "Auto Combo: ON" or "Auto Combo: OFF"
+    AutoComboBtn.TextColor3 = Settings.AutoCombo and Color3.fromRGB(85, 255, 85) or Color3.fromRGB(255, 85, 85)
+end)
 
-    if enabled then
-        if FlyConnection then FlyConnection:Disconnect() end
-        local BV = Instance.new("BodyVelocity", RootPart); BV.Name = "FlightVelocity"; BV.MaxForce = Vector3.new(9e9, 9e9, 9e9)
-        local BG = Instance.new("BodyGyro", RootPart); BG.Name = "FlightGyro"; BG.MaxTorque = Vector3.new(9e9, 9e9, 9e9); BG.P = 2e4
-        FlyConnection = RunService.RenderStepped:Connect(function()
-            if not FlyEnabled then return end
-            Humanoid:ChangeState(Enum.HumanoidStateType.Physics)
-            local Camera = Workspace.CurrentCamera
-            local MoveDirection = Vector3.new(0, 0, 0)
-            if UserInputService:IsKeyDown(Enum.KeyCode.W) then MoveDirection = MoveDirection + Camera.CFrame.LookVector end
-            if UserInputService:IsKeyDown(Enum.KeyCode.S) then MoveDirection = MoveDirection - Camera.CFrame.LookVector end
-            if UserInputService:IsKeyDown(Enum.KeyCode.A) then MoveDirection = MoveDirection - Camera.CFrame.RightVector end
-            if UserInputService:IsKeyDown(Enum.KeyCode.D) then MoveDirection = MoveDirection + Camera.CFrame.RightVector end
-            RootPart.FlightVelocity.Velocity = MoveDirection * FlySpeed
-            RootPart.FlightGyro.CFrame = Camera.CFrame
-        end)
+-- Полёт
+local flyBodyVel, flyBodyGyro
+FlyBtn.MouseButton1Click:Connect(function()
+    Settings.FlyEnabled = not Settings.FlyEnabled
+    FlyBtn.Text = Settings.FlyEnabled and "Fly: ON" or "Fly: OFF"
+    FlyBtn.TextColor3 = Settings.FlyEnabled and Color3.fromRGB(85, 255, 85) or Color3.fromRGB(255, 85, 85)
+
+    local char = LocalPlayer.Character
+    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+    local hrp = char.HumanoidRootPart
+
+    if Settings.FlyEnabled then
+        flyBodyVel = Instance.new("BodyVelocity")
+        flyBodyVel.MaxForce = Vector3.new(1e9, 1e9, 1e9)
+        flyBodyVel.Velocity = Vector3.new(0, 0, 0)
+        flyBodyVel.Parent = hrp
+
+        flyBodyGyro = Instance.new("BodyGyro")
+        flyBodyGyro.MaxTorque = Vector3.new(1e9, 1e9, 1e9)
+        flyBodyGyro.CFrame = hrp.CFrame
+        flyBodyGyro.Parent = hrp
     else
-        if FlyConnection then FlyConnection:Disconnect() end
-        if RootPart:FindFirstChild("FlightVelocity") then RootPart.FlightVelocity:Destroy() end
-        if RootPart:FindFirstChild("FlightGyro") then RootPart.FlightGyro:Destroy() end
-        Humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
-    end
-end
-
--- =======================================================================
--- ЛОГИКА ДЛЯ ИГРЫ FISCH
--- =======================================================================
-
--- Логика хождения по воде
-RunService.Heartbeat:Connect(function()
-    if WalkOnWaterEnabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-        if not WaterPlatform or not WaterPlatform.Parent then
-            WaterPlatform = Instance.new("Part")
-            WaterPlatform.Name = "WaterWalkPlatform"
-            WaterPlatform.Size = Vector3.new(100, 1, 100)
-            WaterPlatform.Anchored = true
-            WaterPlatform.Transparency = 0.8 -- Слегка видимая плита под ногами
-            WaterPlatform.Color = Color3.fromRGB(0, 255, 255)
-            WaterPlatform.Parent = Workspace
-        end
-        -- Держим платформу чуть ниже уровня океана (обычно Y = 0 или около того в Fisch)
-        local rootPos = LocalPlayer.Character.HumanoidRootPart.Position
-        WaterPlatform.CFrame = CFrame.new(rootPos.X, 1.5, rootPos.Z) -- Настройка высоты подстроена под уровень воды
-    else
-        if WaterPlatform then
-            WaterPlatform:Destroy()
-            WaterPlatform = nil
-        end
+        if flyBodyVel then flyBodyVel:Destroy() end
+        if flyBodyGyro then flyBodyGyro:Destroy() end
     end
 end)
 
--- Авто-Рыбалка цикл
-spawn(function()
-    while wait(1) do
-        if AutoFishEnabled and LocalPlayer.Character then
-            local tool = LocalPlayer.Character:FindFirstChildOfClass("Tool") or LocalPlayer.Backpack:FindFirstChildOfClass("Tool")
-            if tool and tool: some_validation_or_name_check_here -- Замените на имя вашей удочки, если нужно
-               -- Логика отправки клика/события для заброса удочки
-               -- В Fisch обычно используется RemoteEvent или активация Tool:Activate()
-               tool:Activate()
-            end
-        end
-    end
-end)
-
--- Ноуклип и ферма MM2
-RunService.Stepped:Connect(function()
-    if NoclipEnabled and LocalPlayer.Character then
-        for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
-            if part:IsA("BasePart") then part.CanCollide = false end
-        end
-    end
-end)
-
-spawn(function()
-    while wait(0.5) do
-        if AutoFarmEnabled then
-            local container = Workspace:FindFirstChild("Normal") and Workspace.Normal:FindFirstChild("CoinContainer")
-            if container then
-                for _, coin in pairs(container:GetChildren()) do
-                    if coin:IsA("BasePart") and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                        LocalPlayer.Character.HumanoidRootPart.CFrame = coin.CFrame
-                        wait(0.1)
-                    end
-                end
-            end
-        end
-    end
-end)
-
--- =======================================================================
--- МЕНЮ И ВКЛАДКИ
--- =======================================================================
-
--- Вкладка Fisch (Рыбалка)
-local FischTab = Window:CreateTab("Fisch (Рыбалка)", 4483362458)
-
-FischTab:CreateToggle({
-    Name = "Авто-заброс удочки",
-    Callback = function(v) AutoFishEnabled = v end
-})
-
-FischTab:CreateToggle({
-    Name = "Ходьба по воде",
-    Callback = function(v) WalkOnWaterEnabled = v end
-})
-
-FischTab:CreateSlider({
-    Name = "Скорость ходьбы (WalkSpeed)",
-    Range = {16, 150},
-    CurrentValue = 16,
-    Callback = function(v)
-        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
-            LocalPlayer.Character.Humanoid.WalkSpeed = v
-        end
-    end
-})
-
--- Телепорты по островам Fisch
-FischTab:CreateButton({Name = "ТП: Moosewood (Спавн)", Callback = function() 
-    if LocalPlayer.Character then LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(383, 16, 243) end 
-end})
-
-FischTab:CreateButton({Name = "ТП: Roselit Bay", Callback = function() 
-    if LocalPlayer.Character then LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(-1693, 15, 663) end 
-end})
-
-FischTab:CreateButton({Name = "ТП: Terrapin Island", Callback = function() 
-    if LocalPlayer.Character then LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(-180, 16, 1945) end 
-end})
-
-FischTab:CreateButton({Name = "ТП: Snowcap Island", Callback = function() 
-    if LocalPlayer.Character then LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(2643, 137, 2410) end 
-end})
-
-FischTab:CreateButton({Name = "ТП: Sunken Ship", Callback = function() 
-    if LocalPlayer.Character then LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(-3044, -15, 2307) end 
-end})
-
-
--- Вкладки MM2
-local VisualsTab = Window:CreateTab("MM2: Визуалы", 4483362458)
-VisualsTab:CreateToggle({Name = "ESP (Убийца/Шериф)", Callback = function(v) EspEnabled = v end})
-VisualsTab:CreateToggle({Name = "ESP на ВСЕХ игроков", Callback = function(v) EspAllEnabled = v end})
-
-local CombatTab = Window:CreateTab("MM2: Бой", 4483362458)
-CombatTab:CreateToggle({Name = "Silent Aim", Callback = function(v) SilentAimEnabled = v end})
-
-local TeleportTab = Window:CreateTab("MM2: Телепорты", 4483362458)
-TeleportTab:CreateButton({Name = "ТП к Убийце", Callback = function()
-    for _, pl in pairs(Players:GetPlayers()) do
-        if pl ~= LocalPlayer and GetPlayerRole(pl) == "Murderer" and pl.Character then
-            LocalPlayer.Character.HumanoidRootPart.CFrame = pl.Character.HumanoidRootPart.CFrame * CFrame.new(0, 3, 0)
-        end
-    end
-end})
-TeleportTab:CreateButton({Name = "ТП к Шерифу", Callback = function()
-    for _, pl in pairs(Players:GetPlayers()) do
-        if pl ~= LocalPlayer and GetPlayerRole(pl) == "Sheriff" and pl.Character then
-            LocalPlayer.Character.HumanoidRootPart.CFrame = pl.Character.HumanoidRootPart.CFrame * CFrame.new(0, 3, 0)
-        end
-    end
-end})
-
-local FarmTab = Window:CreateTab("MM2: Фарм и Полет", 4483362458)
-FarmTab:CreateToggle({Name = "Авто-фарм монет", Callback = function(v) AutoFarmEnabled = v end})
-FarmTab:CreateToggle({Name = "Полет (Fly WASD)", Callback = function(v) FlyEnabled = v; ToggleFly(v) end})
-FarmTab:CreateSlider({Name = "Скорость полета", Range = {10, 200}, CurrentValue = 50, Callback = function(v) FlySpeed = v end})
-
-local MiscTab = Window:CreateTab("Разное", 4483362458)
-MiscTab:CreateToggle({Name = "Noclip (Сквозь стены)", Callback = function(v) NoclipEnabled = v end})
-
--- ESP Loop
 RunService.RenderStepped:Connect(function()
-    for _, pl in pairs(Players:GetPlayers()) do
-        if pl ~= LocalPlayer and pl.Character then
-            local role = GetPlayerRole(pl)
-            local hl = pl.Character:FindFirstChild("Highlight")
-            local shouldHighlight = false
-            local highlightColor = Color3.fromRGB(255, 255, 255)
-            
-            if EspAllEnabled then
-                shouldHighlight = true
-                highlightColor = (role == "Murderer" and Color3.fromRGB(255,0,0) or role == "Sheriff" and Color3.fromRGB(0,0,255) or Color3.fromRGB(0,255,0))
-            elseif EspEnabled and (role == "Murderer" or role == "Sheriff") then
-                shouldHighlight = true
-                highlightColor = (role == "Murderer" and Color3.fromRGB(255, 0, 0) or Color3.fromRGB(0, 0, 255))
-            end
-            
-            if shouldHighlight then
-                if not hl then hl = Instance.new("Highlight", pl.Character) end
-                hl.FillColor = highlightColor
-            elseif hl then hl:Destroy() end
-        end
+    if Settings.FlyEnabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        local hrp = LocalPlayer.Character.HumanoidRootPart
+        local moveDir = Vector3.new(0, 0, 0)
+
+        if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + Camera.CFrame.LookVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - Camera.CFrame.LookVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir - Camera.CFrame.RightVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + Camera.CFrame.RightVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveDir = moveDir + Vector3.new(0, 1, 0) end
+
+        if flyBodyVel then flyBodyVel.Velocity = moveDir * Settings.FlySpeed end
+        if flyBodyGyro then flyBodyGyro.CFrame = Camera.CFrame end
     end
 end)
 
-Rayfield:Notify({Title = "Успешно", Content = "Lordikhhh Hub готов к работе в MM2 и Fisch!", Duration = 3})
+-- === 3. ЦИКЛ АВТО-КОМБО И ОБЫЧНОГО БОЯ ===
+local isExecutingCombo = false
+
+task.spawn(function()
+    while task.wait(0.1) do
+        local myChar = LocalPlayer.Character
+        local enemy = getClosestEnemy()
+
+        if myChar and myChar:FindFirstChild("HumanoidRootPart") and enemy and enemy:FindFirstChild("HumanoidRootPart") and not Settings.FlyEnabled then
+            local myHrp = myChar.HumanoidRootPart
+            local enemyHrp = enemy.HumanoidRootPart
+
+            -- Удержание позиции возле противника
+            myHrp.CFrame = CFrame.new(enemyHrp.Position - (enemyHrp.CFrame.LookVector * 2.2), enemyHrp.Position)
+
+            -- Логика Auto Combo
+            if Settings.AutoCombo and not isExecutingCombo then
+                isExecutingCombo = true
+                
+                -- Выполнение комбо: 4 удара M1 + Скилл 1
+                for i = 1, 4 do
+                    doClick()
+                    task.wait(0.25)
+                end
+                
+                useSkill(1) -- Использование первого скилла (клавиша 1)
+                task.wait(0.5)
+                
+                isExecutingCombo = false
+            -- Логика обычного Auto Fight
+            elseif Settings.AutoFight and not Settings.AutoCombo then
+                doClick()
+            end
+        end
+    end
+end)
