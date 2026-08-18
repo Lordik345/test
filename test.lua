@@ -1,4 +1,4 @@
--- [[ TSB ULTIMATE TOP HUB: FOV AIM LOCK EDITION ]] --
+-- [[ TSB ULTIMATE TOP HUB: OVERHEAD DAMAGE EDITION ]] --
 
 local KEY_TO_ENTER = "TOP"
 
@@ -14,21 +14,26 @@ local function startHub()
         AutoFarm = false,
         Target = nil,
         AutoSkills = false,
+        
+        -- Режимы позиционирования
+        Overhead = false,        
+        OverheadHeight = 7,      
         Underground = false,
         UndergroundDepth = 8,
-        Orbit = false,
-        Fly = false,
-        FlySpeed = 50,
         AirFarm = false,
         AirHeight = 20,
+
+        Fly = false,
+        FlySpeed = 50,
+
         -- Настройки Auto Lock / Aim
         AutoLock = false,
         LockSmoothness = 0.2,
-        -- Настройки FOV
         ShowFOV = false,
         UseFOVCheck = false,
         FOVRadius = 150,
-        -- Настройки защиты
+
+        -- Защита
         AutoBlock = false,
         BlockDistance = 12,
         AutoDash = false,
@@ -37,7 +42,6 @@ local function startHub()
         LastDash = 0
     }
 
-    -- Создание визуального круга FOV через Drawing API
     local FOVCircle = Drawing.new("Circle")
     FOVCircle.Thickness = 2
     FOVCircle.Color = Color3.fromRGB(255, 50, 50)
@@ -55,7 +59,6 @@ local function startHub()
         return nil
     end
 
-    -- Проверка: находится ли цель внутри круга FOV
     local function isTargetInFOV(targetChar)
         if not targetChar or not targetChar:FindFirstChild("HumanoidRootPart") then return false end
         local screenPos, onScreen = Camera:WorldToViewportPoint(targetChar.HumanoidRootPart.Position)
@@ -63,15 +66,13 @@ local function startHub()
 
         local mousePos = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
         local targetPos2D = Vector2.new(screenPos.X, screenPos.Y)
-        local dist = (mousePos - targetPos2D).Magnitude
-
-        return dist <= Settings.FOVRadius
+        return (mousePos - targetPos2D).Magnitude <= Settings.FOVRadius
     end
 
     local Window = Rayfield:CreateWindow({
-        Name = "TSB TOP HUB | FOV Aim Lock",
+        Name = "TSB TOP HUB | Ultimate Edition",
         LoadingTitle = "TSB TOP HUB",
-        LoadingSubtitle = "FOV System Integrated",
+        LoadingSubtitle = "Loaded Successfully",
         ConfigurationSaving = { Enabled = false }
     })
 
@@ -81,7 +82,7 @@ local function startHub()
     local MoveTab = Window:CreateTab("Movement", "move")
 
     local Dropdown = FarmTab:CreateDropdown({
-        Name = "Выбрать цель",
+        Name = "Выбрать цель (Target)",
         Options = {"Нет целей"},
         CurrentOption = "",
         MultipleOptions = false,
@@ -108,6 +109,20 @@ local function startHub()
         Name = "Auto Farm (Атака M1)",
         CurrentValue = false,
         Callback = function(v) Settings.AutoFarm = v end
+    })
+
+    FarmTab:CreateToggle({
+        Name = "Overhead Mode (Атака СВЕРХУ)",
+        CurrentValue = false,
+        Callback = function(v) Settings.Overhead = v end
+    })
+
+    FarmTab:CreateSlider({
+        Name = "Высота атаки сверху",
+        Range = {3, 18},
+        Increment = 1,
+        CurrentValue = 7,
+        Callback = function(v) Settings.OverheadHeight = v end
     })
 
     FarmTab:CreateToggle({
@@ -144,7 +159,7 @@ local function startHub()
         Callback = function(v) Settings.AutoSkills = v end
     })
 
-    -- === ВКЛАДКА COMBAT LOCK & FOV ===
+    -- COMBAT LOCK & FOV
     CombatTab:CreateToggle({
         Name = "Auto Lock (Захват Камеры / Aim)",
         CurrentValue = false,
@@ -258,7 +273,7 @@ local function startHub()
 
     -- Цикл кликов M1 и прожима скиллов
     task.spawn(function()
-        while task.wait(0.1) do
+        while task.wait(0.08) do
             if Settings.AutoFarm and Settings.Target and Settings.Target.Character and not Settings.IsBlocking then
                 VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 1)
                 task.wait(0.02)
@@ -276,9 +291,8 @@ local function startHub()
         end
     end)
 
-    -- Главный физический цикл: Отрисовка FOV, Auto Lock и позиционирование
+    -- Главный физический цикл: Позиционирование, FOV, Auto Lock
     RunService.RenderStepped:Connect(function()
-        -- Отрисовка круга FOV по центру экрана
         FOVCircle.Visible = Settings.ShowFOV
         FOVCircle.Radius = Settings.FOVRadius
         FOVCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
@@ -287,8 +301,8 @@ local function startHub()
         if not char or not char:FindFirstChild("HumanoidRootPart") then return end
         local hrp = char.HumanoidRootPart
 
-        -- Отключение коллизий для персонажа при подземелье/воздухе
-        if Settings.Underground or Settings.AirFarm then
+        -- Отключение коллизий для спец-режимов
+        if Settings.Underground or Settings.Overhead or Settings.AirFarm then
             for _, part in pairs(char:GetDescendants()) do
                 if part:IsA("BasePart") then 
                     part.CanCollide = false 
@@ -296,7 +310,7 @@ local function startHub()
             end
         end
 
-        -- Логика AUTO LOCK с проверкой FOV
+        -- Логика AUTO LOCK
         if Settings.AutoLock and Settings.Target and Settings.Target.Character then
             local targetChar = Settings.Target.Character
             local targetHRP = targetChar:FindFirstChild("HumanoidRootPart")
@@ -315,17 +329,23 @@ local function startHub()
             end
         end
 
-        -- Вычисление позиций для Авто-Фарма
+        -- Расчёт позиционирования авто-фарма
         if Settings.AutoFarm and Settings.Target and Settings.Target.Character then
             local targetHRP = Settings.Target.Character:FindFirstChild("HumanoidRootPart")
 
             if targetHRP then
                 hrp.AssemblyLinearVelocity = Vector3.zero
                 
-                if Settings.Underground then
+                if Settings.Overhead then
+                    local topPos = targetHRP.Position + Vector3.new(0, Settings.OverheadHeight, 0)
+                    local baseCF = CFrame.new(topPos, targetHRP.Position)
+                    hrp.CFrame = baseCF * CFrame.Angles(math.rad(-90), 0, 0)
+
+                elseif Settings.Underground then
                     local underPos = targetHRP.Position - Vector3.new(0, Settings.UndergroundDepth, 0)
-                    hrp.CFrame = CFrame.new(underPos, targetHRP.Position)
-                    
+                    local baseCF = CFrame.new(underPos, targetHRP.Position)
+                    hrp.CFrame = baseCF * CFrame.Angles(math.rad(90), 0, 0)
+
                 elseif Settings.AirFarm then
                     local airPos = targetHRP.Position + Vector3.new(0, Settings.AirHeight, 0)
                     hrp.CFrame = CFrame.new(airPos, targetHRP.Position)
