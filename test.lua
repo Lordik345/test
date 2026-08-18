@@ -1,163 +1,125 @@
--- [[ TSB ULTIMATE HUB: Auto Farm, Combo, Aim, Fly - Delta Edition ]] --
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+-- === ПЕРЕМЕННЫЕ ===
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
 local VirtualInputManager = game:GetService("VirtualInputManager")
-local CoreGui = game:GetService("CoreGui")
-
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
--- НАСТРОЙКИ
-local CORRECT_KEY = "TSB2026"
 local Settings = {
-    AutoFight = false, AutoCombo = false, AutoFarm = false, -- Добавлен AutoFarm
-    ComboMode = "Genos", AutoBlock = false, AntiRagdoll = false,
-    FlyEnabled = false, FlySpeed = 60,
-    Aimbot = false, ShowFOV = false, FOVRadius = 150,
-    AttackRange = 25
+    AutoFarm = false, Target = nil, AttackDelay = 0.2, UndergroundMode = false,
+    FlyEnabled = false, FlySpeed = 50
 }
 
--- === 1. ИНТЕРФЕЙС ===
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "TSB_Ultimate_Hub"
-ScreenGui.Parent = (gethui and gethui()) or CoreGui or LocalPlayer:WaitForChild("PlayerGui")
+-- Объекты для полета
+local bodyVel, bodyGyro
 
-local fovCircle = Drawing.new("Circle")
-fovCircle.Visible = false
-fovCircle.Radius = Settings.FOVRadius
-fovCircle.Thickness = 1
-fovCircle.Color = Color3.fromRGB(255, 255, 255)
-fovCircle.Position = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)
-
-local MainFrame = Instance.new("Frame", ScreenGui)
-MainFrame.Size = UDim2.new(0, 320, 0, 540) -- Немного увеличил размер
-MainFrame.Position = UDim2.new(0.5, -160, 0.5, -270)
-MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
-MainFrame.Active = true
-MainFrame.Draggable = true
-
-local OpenBtn = Instance.new("TextButton", ScreenGui)
-OpenBtn.Size = UDim2.new(0, 50, 0, 50); OpenBtn.Position = UDim2.new(0.02, 0, 0.4, 0)
-OpenBtn.Text = "TSB"; OpenBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
-
-local HackFrame = Instance.new("Frame", MainFrame)
-HackFrame.Size = UDim2.new(1, 0, 1, -40); HackFrame.Position = UDim2.new(0, 0, 0, 40)
-HackFrame.BackgroundTransparency = 1; HackFrame.Visible = false
-
--- ФУНКЦИЯ СОЗДАНИЯ КНОПОК
-local function createBtn(yPos, text)
-    local btn = Instance.new("TextButton", HackFrame)
-    btn.Size = UDim2.new(0.8, 0, 0, 35); btn.Position = UDim2.new(0.1, 0, yPos, 0)
-    btn.BackgroundColor3 = Color3.fromRGB(40, 40, 50); btn.Text = text; btn.TextColor3 = Color3.fromRGB(255, 85, 85)
-    return btn
-end
-
--- Создаем кнопки (позиции распределены равномерно)
-local AutoFightBtn = createBtn(0.02, "Auto Fight: OFF")
-local AutoComboBtn = createBtn(0.11, "Auto Combo: OFF")
-local AutoFarmBtn  = createBtn(0.20, "Auto Farm: OFF") -- Новая кнопка
-local ModeBtn      = createBtn(0.29, "Mode: GENOS")
-local AutoBlockBtn = createBtn(0.38, "Auto Block: OFF")
-local AntiRagBtn   = createBtn(0.47, "Anti-Ragdoll: OFF")
-local FlyBtn       = createBtn(0.56, "Fly: OFF")
-local AimBtn       = createBtn(0.65, "Aimbot: OFF")
-local FOVBtn       = createBtn(0.74, "Show FOV: OFF")
-
--- === 2. ЛОГИКА ===
-OpenBtn.MouseButton1Click:Connect(function() MainFrame.Visible = not MainFrame.Visible end)
-
--- Переключение состояний
-local function toggle(settingName, btn, text)
-    Settings[settingName] = not Settings[settingName]
-    btn.Text = text .. (Settings[settingName] and ": ON" or ": OFF")
-    btn.TextColor3 = Settings[settingName] and Color3.fromRGB(85, 255, 85) or Color3.fromRGB(255, 85, 85)
-end
-
-AutoFightBtn.MouseButton1Click:Connect(function() toggle("AutoFight", AutoFightBtn, "Auto Fight") end)
-AutoComboBtn.MouseButton1Click:Connect(function() toggle("AutoCombo", AutoComboBtn, "Auto Combo") end)
-AutoFarmBtn.MouseButton1Click:Connect(function() toggle("AutoFarm", AutoFarmBtn, "Auto Farm") end) -- Логика ферма
-AutoBlockBtn.MouseButton1Click:Connect(function() toggle("AutoBlock", AutoBlockBtn, "Auto Block") end)
-AntiRagBtn.MouseButton1Click:Connect(function() toggle("AntiRagdoll", AntiRagBtn, "Anti-Ragdoll") end)
-FlyBtn.MouseButton1Click:Connect(function() toggle("FlyEnabled", FlyBtn, "Fly") end)
-AimBtn.MouseButton1Click:Connect(function() toggle("Aimbot", AimBtn, "Aimbot") end)
-FOVBtn.MouseButton1Click:Connect(function() toggle("ShowFOV", FOVBtn, "Show FOV") end)
-
-ModeBtn.MouseButton1Click:Connect(function() 
-    Settings.ComboMode = (Settings.ComboMode == "Genos" and "Sonic" or "Genos")
-    ModeBtn.Text = "Mode: " .. string.upper(Settings.ComboMode) 
-end)
-
--- Авторизация
-local KeyInput = Instance.new("TextBox", MainFrame); KeyInput.Size = UDim2.new(0.8, 0, 0, 40); KeyInput.Position = UDim2.new(0.1, 0, 0.3, 0); KeyInput.PlaceholderText = "Введите ключ..."
-local KeyBtn = Instance.new("TextButton", MainFrame); KeyBtn.Size = UDim2.new(0.8, 0, 0, 40); KeyBtn.Position = UDim2.new(0.1, 0, 0.5, 0); KeyBtn.Text = "Войти"
-KeyBtn.MouseButton1Click:Connect(function() if KeyInput.Text == CORRECT_KEY then HackFrame.Visible = true; KeyInput.Visible = false; KeyBtn.Visible = false end end)
-
--- Вспомогательные
-local function doClick()
-    if mouse1click then mouse1click() else game:GetService("VirtualUser"):Button1Down(Vector2.new(0,0), Camera.CFrame); task.wait(0.01); game:GetService("VirtualUser"):Button1Up(Vector2.new(0,0), Camera.CFrame) end
-end
-
-local function useSkill(keyName)
-    local key = Enum.KeyCode[keyName] or Enum.KeyCode["Button" .. keyName]
-    VirtualInputManager:SendKeyEvent(true, key, false, game); task.wait(0.05); VirtualInputManager:SendKeyEvent(false, key, false, game)
-end
-
-local function getClosestEnemy()
-    local closest, minDist = nil, Settings.AttackRange
+-- === ФУНКЦИИ ===
+local function getPlayer(name)
     for _, p in pairs(Players:GetPlayers()) do
-        if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
-            local dist = (LocalPlayer.Character.HumanoidRootPart.Position - p.Character.HumanoidRootPart.Position).Magnitude
-            if dist < minDist then minDist = dist; closest = p.Character end
-        end
+        if p.Name:lower():find(name:lower()) then return p end
     end
-    return closest
+    return nil
 end
 
--- === 3. ЦИКЛЫ ОБНОВЛЕНИЯ ===
+-- Логика полета
+local function toggleFly(enabled)
+    local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+
+    if enabled then
+        bodyVel = Instance.new("BodyVelocity", hrp)
+        bodyVel.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+        bodyVel.Velocity = Vector3.new(0, 0, 0)
+        
+        bodyGyro = Instance.new("BodyGyro", hrp)
+        bodyGyro.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+        bodyGyro.P = 10000
+        bodyGyro.D = 100
+        bodyGyro.CFrame = hrp.CFrame
+    else
+        if bodyVel then bodyVel:Destroy() end
+        if bodyGyro then bodyGyro:Destroy() end
+    end
+end
+
+-- === RAYFIELD GUI ===
+local Window = Rayfield:CreateWindow({
+   Name = "TSB Pro Hub | Ultimate Edition",
+   LoadingTitle = "TSB Hub Loading...",
+   LoadingSubtitle = "by Delta",
+   ConfigurationSaving = { Enabled = true, FileName = "TSB_Config" }
+})
+
+local FarmTab = Window:CreateTab("Auto Farm", "target")
+local MovementTab = Window:CreateTab("Movement", "move")
+
+-- Auto Farm Tab
+local TargetDropdown = FarmTab:CreateDropdown({
+   Name = "Выберите цель", Options = {}, CurrentOption = "",
+   Callback = function(Option) Settings.Target = getPlayer(Option[1]) end,
+})
+
+FarmTab:CreateButton({ Name = "Обновить список игроков", Callback = function()
+    local list = {}
+    for _, p in pairs(Players:GetPlayers()) do if p ~= LocalPlayer then table.insert(list, p.Name) end end
+    TargetDropdown:Refresh(list, true)
+end})
+
+FarmTab:CreateToggle({ Name = "Включить Auto Farm", CurrentValue = false, Callback = function(v) Settings.AutoFarm = v end })
+FarmTab:CreateToggle({ Name = "Underground Mode (Noclip)", CurrentValue = false, Callback = function(v) Settings.UndergroundMode = v end })
+
+-- Movement Tab
+MovementTab:CreateToggle({ Name = "Fly (Полет)", CurrentValue = false, Callback = function(v) 
+    Settings.FlyEnabled = v 
+    toggleFly(v)
+end})
+
+MovementTab:CreateSlider({ Name = "Fly Speed", Range = {10, 200}, Increment = 5, CurrentValue = 50, Callback = function(v) Settings.FlySpeed = v end })
+
+-- === ОСНОВНОЙ ЦИКЛ ===
 RunService.RenderStepped:Connect(function()
-    -- Aim & FOV
-    fovCircle.Visible = Settings.ShowFOV; fovCircle.Radius = Settings.FOVRadius; fovCircle.Position = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)
-    if Settings.Aimbot then
-        local closest = nil; local dist = Settings.FOVRadius
-        for _, p in pairs(Players:GetPlayers()) do
-            if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
-                local pos, onScreen = Camera:WorldToViewportPoint(p.Character.HumanoidRootPart.Position)
-                local mag = (Vector2.new(pos.X, pos.Y) - Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)).Magnitude
-                if onScreen and mag < dist then closest = p.Character.HumanoidRootPart; dist = mag end
+    local char = LocalPlayer.Character
+    if not char then return end
+
+    -- Noclip (для underground)
+    if Settings.UndergroundMode then
+        for _, part in pairs(char:GetDescendants()) do if part:IsA("BasePart") then part.CanCollide = false end end
+    end
+
+    -- Fly Logic
+    if Settings.FlyEnabled and char:FindFirstChild("HumanoidRootPart") then
+        local hrp = char.HumanoidRootPart
+        local moveDir = Vector3.new(0,0,0)
+        
+        if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + Camera.CFrame.LookVector end
+        if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - Camera.CFrame.LookVector end
+        if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir - Camera.CFrame.RightVector end
+        if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + Camera.CFrame.RightVector end
+        
+        bodyVel.Velocity = moveDir * Settings.FlySpeed
+        bodyGyro.CFrame = Camera.CFrame
+    end
+
+    -- Auto Farm (Teleport & Attack)
+    if Settings.AutoFarm and Settings.Target and Settings.Target.Character and char:FindFirstChild("HumanoidRootPart") then
+        local targetChar = Settings.Target.Character
+        if targetChar:FindFirstChild("HumanoidRootPart") then
+            local yOffset = Settings.UndergroundMode and -3 or 0
+            char.HumanoidRootPart.CFrame = targetChar.HumanoidRootPart.CFrame * CFrame.new(0, yOffset, 2)
+            
+            -- Атака
+            game:GetService("VirtualUser"):Button1Down(Vector2.new(0,0))
+            task.wait(Settings.AttackDelay)
+            game:GetService("VirtualUser"):Button1Up(Vector2.new(0,0))
+            
+            -- Скиллы
+            for i = 1, 4 do
+                VirtualInputManager:SendKeyEvent(true, Enum.KeyCode["Button" .. i], false, game)
+                task.wait(0.05)
+                VirtualInputManager:SendKeyEvent(false, Enum.KeyCode["Button" .. i], false, game)
             end
         end
-        if closest then Camera.CFrame = CFrame.new(Camera.CFrame.Position, closest.Position) end
     end
 end)
-
--- Боевой цикл (Auto Farm, Fight, Combo)
-task.spawn(function()
-    while task.wait(0.15) do
-        local enemy = getClosestEnemy()
-        
-        -- Auto Farm / Fight Logic
-        if (Settings.AutoFarm or Settings.AutoFight or Settings.AutoCombo) and enemy then
-            local myHrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-            if myHrp then
-                myHrp.CFrame = CFrame.new(enemy.HumanoidRootPart.Position - (enemy.HumanoidRootPart.CFrame.LookVector * 2.5), enemy.HumanoidRootPart.Position)
-                
-                if Settings.AutoFarm or Settings.AutoCombo then
-                    for i = 1, 4 do doClick(); task.wait(0.2) end
-                    useSkill(Settings.ComboMode == "Genos" and "One" or "Three")
-                else
-                    doClick()
-                end
-            end
-        end
-        
-        -- Anti-Ragdoll
-        if Settings.AntiRagdoll and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
-            if LocalPlayer.Character.Humanoid:GetState() == Enum.HumanoidStateType.Ragdoll then
-                LocalPlayer.Character.Humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
-            end
-        end
-    end
-end)
-
-print("TSB Ultimate Hub Loaded Successfully!")
