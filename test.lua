@@ -1,4 +1,4 @@
--- [[ TSB ULTIMATE TOP HUB: PERFECT BACK-FARM EDITION ]] --
+-- [[ TSB ULTIMATE TOP HUB: FOV AIM LOCK EDITION ]] --
 
 local KEY_TO_ENTER = "TOP"
 
@@ -15,11 +15,20 @@ local function startHub()
         Target = nil,
         AutoSkills = false,
         Underground = false,
+        UndergroundDepth = 8,
         Orbit = false,
         Fly = false,
         FlySpeed = 50,
         AirFarm = false,
         AirHeight = 20,
+        -- Настройки Auto Lock / Aim
+        AutoLock = false,
+        LockSmoothness = 0.2,
+        -- Настройки FOV
+        ShowFOV = false,
+        UseFOVCheck = false,
+        FOVRadius = 150,
+        -- Настройки защиты
         AutoBlock = false,
         BlockDistance = 12,
         AutoDash = false,
@@ -27,6 +36,14 @@ local function startHub()
         IsBlocking = false,
         LastDash = 0
     }
+
+    -- Создание визуального круга FOV через Drawing API
+    local FOVCircle = Drawing.new("Circle")
+    FOVCircle.Thickness = 2
+    FOVCircle.Color = Color3.fromRGB(255, 50, 50)
+    FOVCircle.Filled = false
+    FOVCircle.Transparency = 0.8
+    FOVCircle.Visible = false
 
     local function getTarget(name)
         if not name or name == "" then return nil end
@@ -38,14 +55,28 @@ local function startHub()
         return nil
     end
 
+    -- Проверка: находится ли цель внутри круга FOV
+    local function isTargetInFOV(targetChar)
+        if not targetChar or not targetChar:FindFirstChild("HumanoidRootPart") then return false end
+        local screenPos, onScreen = Camera:WorldToViewportPoint(targetChar.HumanoidRootPart.Position)
+        if not onScreen then return false end
+
+        local mousePos = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+        local targetPos2D = Vector2.new(screenPos.X, screenPos.Y)
+        local dist = (mousePos - targetPos2D).Magnitude
+
+        return dist <= Settings.FOVRadius
+    end
+
     local Window = Rayfield:CreateWindow({
-        Name = "TSB TOP HUB | Ultimate",
+        Name = "TSB TOP HUB | FOV Aim Lock",
         LoadingTitle = "TSB TOP HUB",
-        LoadingSubtitle = "Behind-Target Fixed",
+        LoadingSubtitle = "FOV System Integrated",
         ConfigurationSaving = { Enabled = false }
     })
 
     local FarmTab = Window:CreateTab("Auto Farm", "sword")
+    local CombatTab = Window:CreateTab("Combat Lock", "crosshair")
     local DefenseTab = Window:CreateTab("Defense", "shield")
     local MoveTab = Window:CreateTab("Movement", "move")
 
@@ -80,6 +111,20 @@ local function startHub()
     })
 
     FarmTab:CreateToggle({
+        Name = "Underground Mode (Атака из-под земли)",
+        CurrentValue = false,
+        Callback = function(v) Settings.Underground = v end
+    })
+
+    FarmTab:CreateSlider({
+        Name = "Глубина под землёй",
+        Range = {3, 20},
+        Increment = 1,
+        CurrentValue = 8,
+        Callback = function(v) Settings.UndergroundDepth = v end
+    })
+
+    FarmTab:CreateToggle({
         Name = "Air Fight (Бой в воздухе)",
         CurrentValue = false,
         Callback = function(v) Settings.AirFarm = v end
@@ -94,15 +139,44 @@ local function startHub()
     })
 
     FarmTab:CreateToggle({
-        Name = "Auto Skills (Скиллы)",
+        Name = "Auto Skills (Использовать скиллы)",
         CurrentValue = false,
         Callback = function(v) Settings.AutoSkills = v end
     })
 
-    FarmTab:CreateToggle({
-        Name = "Underground Mode (Под землёй)",
+    -- === ВКЛАДКА COMBAT LOCK & FOV ===
+    CombatTab:CreateToggle({
+        Name = "Auto Lock (Захват Камеры / Aim)",
         CurrentValue = false,
-        Callback = function(v) Settings.Underground = v end
+        Callback = function(v) Settings.AutoLock = v end
+    })
+
+    CombatTab:CreateSlider({
+        Name = "Плавность наведения прицела",
+        Range = {0.05, 1},
+        Increment = 0.05,
+        CurrentValue = 0.2,
+        Callback = function(v) Settings.LockSmoothness = v end
+    })
+
+    CombatTab:CreateToggle({
+        Name = "Показывать круг FOV",
+        CurrentValue = false,
+        Callback = function(v) Settings.ShowFOV = v end
+    })
+
+    CombatTab:CreateToggle({
+        Name = "Фильтр Aim Lock по FOV",
+        CurrentValue = false,
+        Callback = function(v) Settings.UseFOVCheck = v end
+    })
+
+    CombatTab:CreateSlider({
+        Name = "Радиус FOV (Размер)",
+        Range = {50, 800},
+        Increment = 10,
+        CurrentValue = 150,
+        Callback = function(v) Settings.FOVRadius = v end
     })
 
     DefenseTab:CreateToggle({
@@ -139,7 +213,7 @@ local function startHub()
         Callback = function(v) Settings.FlySpeed = v end
     })
 
-    -- Цикл блока и уклонения
+    -- Цикл авто-блока и уклонения
     task.spawn(function()
         while task.wait(0.05) do
             local char = LocalPlayer.Character
@@ -182,9 +256,9 @@ local function startHub()
         end
     end)
 
-    -- Цикл атаки M1 и скиллов
+    -- Цикл кликов M1 и прожима скиллов
     task.spawn(function()
-        while task.wait(0.08) do
+        while task.wait(0.1) do
             if Settings.AutoFarm and Settings.Target and Settings.Target.Character and not Settings.IsBlocking then
                 VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 1)
                 task.wait(0.02)
@@ -202,14 +276,19 @@ local function startHub()
         end
     end)
 
-    -- Главный цикл позиции (Исправлено позиционирование за спиной и под землей)
-    RunService.Heartbeat:Connect(function()
+    -- Главный физический цикл: Отрисовка FOV, Auto Lock и позиционирование
+    RunService.RenderStepped:Connect(function()
+        -- Отрисовка круга FOV по центру экрана
+        FOVCircle.Visible = Settings.ShowFOV
+        FOVCircle.Radius = Settings.FOVRadius
+        FOVCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+
         local char = LocalPlayer.Character
         if not char or not char:FindFirstChild("HumanoidRootPart") then return end
         local hrp = char.HumanoidRootPart
 
-        -- Отключаем коллизию для Noclip
-        if Settings.Underground or Settings.AutoFarm or Settings.AirFarm then
+        -- Отключение коллизий для персонажа при подземелье/воздухе
+        if Settings.Underground or Settings.AirFarm then
             for _, part in pairs(char:GetDescendants()) do
                 if part:IsA("BasePart") then 
                     part.CanCollide = false 
@@ -217,30 +296,44 @@ local function startHub()
             end
         end
 
-        -- Точный расчёт позиции за спиной
+        -- Логика AUTO LOCK с проверкой FOV
+        if Settings.AutoLock and Settings.Target and Settings.Target.Character then
+            local targetChar = Settings.Target.Character
+            local targetHRP = targetChar:FindFirstChild("HumanoidRootPart")
+
+            if targetHRP then
+                local canLock = true
+                if Settings.UseFOVCheck then
+                    canLock = isTargetInFOV(targetChar)
+                end
+
+                if canLock then
+                    local currentCF = Camera.CFrame
+                    local targetCF = CFrame.new(Camera.CFrame.Position, targetHRP.Position)
+                    Camera.CFrame = currentCF:Lerp(targetCF, Settings.LockSmoothness)
+                end
+            end
+        end
+
+        -- Вычисление позиций для Авто-Фарма
         if Settings.AutoFarm and Settings.Target and Settings.Target.Character then
             local targetHRP = Settings.Target.Character:FindFirstChild("HumanoidRootPart")
 
             if targetHRP then
-                -- Вычисляем высоту
-                local yOffset = 0
-                if Settings.AirFarm then
-                    yOffset = Settings.AirHeight
-                elseif Settings.Underground then
-                    yOffset = -8 -- Увеличено до -8, чтобы вас не было видно над землей
-                end
-
-                if Settings.AirFarm then
-                    targetHRP.AssemblyLinearVelocity = Vector3.zero
-                end
-
-                -- Вектор ЗА СПИНОЙ врага (ровно по направлению взгляда врага)
-                local backVector = targetHRP.CFrame.LookVector * -2.2
-                local targetPosition = targetHRP.Position + backVector + Vector3.new(0, yOffset, 0)
-
-                -- Телепорт строго за спину и разворот ЛИЦОМ в затылок цели
-                hrp.CFrame = CFrame.new(targetPosition, targetHRP.Position + Vector3.new(0, yOffset, 0))
                 hrp.AssemblyLinearVelocity = Vector3.zero
+                
+                if Settings.Underground then
+                    local underPos = targetHRP.Position - Vector3.new(0, Settings.UndergroundDepth, 0)
+                    hrp.CFrame = CFrame.new(underPos, targetHRP.Position)
+                    
+                elseif Settings.AirFarm then
+                    local airPos = targetHRP.Position + Vector3.new(0, Settings.AirHeight, 0)
+                    hrp.CFrame = CFrame.new(airPos, targetHRP.Position)
+                else
+                    local backVector = targetHRP.CFrame.LookVector * -2.5
+                    local targetPosition = targetHRP.Position + backVector
+                    hrp.CFrame = CFrame.new(targetPosition, targetHRP.Position)
+                end
             end
         end
 
@@ -262,7 +355,7 @@ local function startHub()
     end)
 end
 
--- Гуи ключа
+-- Меню ввода ключа
 local ScreenGui = Instance.new("ScreenGui", (gethui and gethui()) or game.CoreGui)
 local Frame = Instance.new("Frame", ScreenGui)
 Frame.Size = UDim2.new(0, 240, 0, 120)
