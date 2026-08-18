@@ -1,4 +1,4 @@
--- [[ TSB ULTIMATE TOP HUB: RAYFIELD EDITION ]] --
+-- [[ TSB ULTIMATE TOP HUB: AIR FIGHT EDITION ]] --
 
 local KEY_TO_ENTER = "TOP"
 
@@ -17,11 +17,21 @@ local function startHub()
         Underground = false,
         Orbit = true,
         Fly = false,
-        FlySpeed = 50
+        FlySpeed = 50,
+        -- Настройки боя в воздухе
+        AirFarm = false,
+        AirHeight = 25,
+        -- Настройки защиты
+        AutoBlock = false,
+        BlockDistance = 12,
+        AutoDash = false,
+        DashCooldown = 3,
+        IsBlocking = false,
+        LastDash = 0
     }
 
     local function getTarget(name)
-        if not name then return nil end
+        if not name or name == "" then return nil end
         for _, p in pairs(Players:GetPlayers()) do
             if p.Name:lower():find(name:lower()) or p.DisplayName:lower():find(name:lower()) then 
                 return p 
@@ -34,21 +44,23 @@ local function startHub()
     local Window = Rayfield:CreateWindow({
         Name = "TSB TOP HUB | Ultimate",
         LoadingTitle = "TSB TOP HUB",
-        LoadingSubtitle = "by Delta Edition",
+        LoadingSubtitle = "Air Fight Edition",
         ConfigurationSaving = { Enabled = false }
     })
 
     local FarmTab = Window:CreateTab("Auto Farm", "sword")
+    local DefenseTab = Window:CreateTab("Defense", "shield")
     local MoveTab = Window:CreateTab("Movement", "move")
 
     -- Выбор цели
     local Dropdown = FarmTab:CreateDropdown({
         Name = "Выбрать цель",
-        Options = {},
+        Options = {"Нет целей"},
         CurrentOption = "",
         MultipleOptions = false,
         Callback = function(v)
-            Settings.Target = getTarget(v[1])
+            local selected = type(v) == "table" and v[1] or v
+            Settings.Target = getTarget(selected)
         end
     })
 
@@ -61,7 +73,7 @@ local function startHub()
                     table.insert(list, p.Name) 
                 end
             end
-            Dropdown:Refresh(list, true)
+            Dropdown:Refresh(#list > 0 and list or {"Нет целей"}, true)
         end
     })
 
@@ -73,13 +85,27 @@ local function startHub()
     })
 
     FarmTab:CreateToggle({
+        Name = "Air Fight (Бой в воздухе)",
+        CurrentValue = false,
+        Callback = function(v) Settings.AirFarm = v end
+    })
+
+    FarmTab:CreateSlider({
+        Name = "Высота боя в воздухе",
+        Range = {10, 100},
+        Increment = 5,
+        CurrentValue = 25,
+        Callback = function(v) Settings.AirHeight = v end
+    })
+
+    FarmTab:CreateToggle({
         Name = "Auto Skills (Скиллы)",
         CurrentValue = false,
         Callback = function(v) Settings.AutoSkills = v end
     })
 
     FarmTab:CreateToggle({
-        Name = "Orbit Mode (Вращение во время боя)",
+        Name = "Orbit Mode (Вращение)",
         CurrentValue = true,
         Callback = function(v) Settings.Orbit = v end
     })
@@ -88,6 +114,27 @@ local function startHub()
         Name = "Underground Mode (Под землёй)",
         CurrentValue = false,
         Callback = function(v) Settings.Underground = v end
+    })
+
+    -- Настройки Защиты
+    DefenseTab:CreateToggle({
+        Name = "Auto Block (Авто-Блок)",
+        CurrentValue = false,
+        Callback = function(v) Settings.AutoBlock = v end
+    })
+
+    DefenseTab:CreateSlider({
+        Name = "Дистанция блока",
+        Range = {5, 25},
+        Increment = 1,
+        CurrentValue = 12,
+        Callback = function(v) Settings.BlockDistance = v end
+    })
+
+    DefenseTab:CreateToggle({
+        Name = "Auto Dash (Уклонение)",
+        CurrentValue = false,
+        Callback = function(v) Settings.AutoDash = v end
     })
 
     -- Настройки Движения
@@ -105,13 +152,77 @@ local function startHub()
         Callback = function(v) Settings.FlySpeed = v end
     })
 
-    -- === ГЛАВНЫЙ ЦИКЛ ===
+    -- === ЛОГИКА АВТО-БЛОКА И У КЛОНЕНИЯ ===
+    task.spawn(function()
+        while task.wait(0.05) do
+            local char = LocalPlayer.Character
+            if char and char:FindFirstChild("HumanoidRootPart") and Settings.Target and Settings.Target.Character then
+                local hrp = char.HumanoidRootPart
+                local targetHRP = Settings.Target.Character:FindFirstChild("HumanoidRootPart")
+
+                if targetHRP then
+                    local dist = (hrp.Position - targetHRP.Position).Magnitude
+
+                    if Settings.AutoBlock and dist <= Settings.BlockDistance then
+                        if not Settings.IsBlocking then
+                            Settings.IsBlocking = true
+                            VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.F, false, game)
+                        end
+                    else
+                        if Settings.IsBlocking then
+                            Settings.IsBlocking = false
+                            VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.F, false, game)
+                        end
+                    end
+
+                    if Settings.AutoDash and dist <= (Settings.BlockDistance - 2) then
+                        if tick() - Settings.LastDash >= Settings.DashCooldown then
+                            Settings.LastDash = tick()
+                            VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.S, false, game)
+                            VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Q, false, game)
+                            task.wait(0.05)
+                            VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Q, false, game)
+                            VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.S, false, game)
+                        end
+                    end
+                end
+            else
+                if Settings.IsBlocking then
+                    Settings.IsBlocking = false
+                    VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.F, false, game)
+                end
+            end
+        end
+    end)
+
+    -- === ЦИКЛ АТАКИ И СКИЛЛОВ ===
+    task.spawn(function()
+        while task.wait(0.1) do
+            if Settings.AutoFarm and Settings.Target and Settings.Target.Character and not Settings.IsBlocking then
+                VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 1)
+                task.wait(0.02)
+                VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 1)
+
+                if Settings.AutoSkills then
+                    local skillKeys = {Enum.KeyCode.One, Enum.KeyCode.Two, Enum.KeyCode.Three, Enum.KeyCode.Four}
+                    local randomKey = skillKeys[math.random(1, #skillKeys)]
+                    
+                    VirtualInputManager:SendKeyEvent(true, randomKey, false, game)
+                    task.wait(0.02)
+                    VirtualInputManager:SendKeyEvent(false, randomKey, false, game)
+                end
+            end
+        end
+    end)
+
+    -- === ГЛАВНЫЙ ЦИКЛ ПЕРЕМЕЩЕНИЯ И ФАРМА В ВОЗДУХЕ (60 FPS) ===
     RunService.Heartbeat:Connect(function()
         local char = LocalPlayer.Character
         if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+        local hrp = char.HumanoidRootPart
 
-        -- Noclip для подземного режима
-        if Settings.Underground then
+        -- Noclip включен при авто-фарме и бое в воздухе
+        if Settings.Underground or Settings.AutoFarm or Settings.AirFarm then
             for _, part in pairs(char:GetDescendants()) do
                 if part:IsA("BasePart") then 
                     part.CanCollide = false 
@@ -119,44 +230,47 @@ local function startHub()
             end
         end
 
-        -- Логика Авто-Фарма
+        -- Позиционирование Авто-Фарма
         if Settings.AutoFarm and Settings.Target and Settings.Target.Character then
-            local targetHRP = Settings.Target.Character:FindFirstChild("HumanoidRootPart")
+            local targetChar = Settings.Target.Character
+            local targetHRP = targetChar:FindFirstChild("HumanoidRootPart")
+
             if targetHRP then
-                local yOffset = Settings.Underground and -3.5 or 0
+                -- Телепортируем/поднимаем врага вместе с нами, если включен Air Fight
+                if Settings.AirFarm then
+                    targetHRP.AssemblyLinearVelocity = Vector3.zero
+                    targetHRP.CFrame = CFrame.new(targetHRP.Position.X, hrp.Position.Y, targetHRP.Position.Z)
+                end
+
+                local yOffset = 0
+                if Settings.AirFarm then
+                    -- Бой на высоте от текущей позиции врага/земли
+                    yOffset = Settings.AirHeight
+                elseif Settings.Underground then
+                    yOffset = -3.5
+                end
+
+                local baseCFrame = targetHRP.CFrame
+                if Settings.AirFarm then
+                    baseCFrame = CFrame.new(targetHRP.Position.X, targetHRP.Position.Y + yOffset, targetHRP.Position.Z)
+                end
+
                 local newPos
-
                 if Settings.Orbit then
-                    local time = tick() * 10
-                    newPos = targetHRP.CFrame * CFrame.new(math.cos(time) * 2.5, yOffset, math.sin(time) * 2.5)
+                    local t = tick() * 5
+                    newPos = baseCFrame * CFrame.new(math.cos(t) * 3, 0, math.sin(t) * 3)
                 else
-                    newPos = targetHRP.CFrame * CFrame.new(0, yOffset, 2)
+                    newPos = baseCFrame * CFrame.new(0, 0, 2)
                 end
 
-                -- Разворот персонажа ЛИЦОМ к цели (чтобы попадали скиллы)
-                char.HumanoidRootPart.CFrame = CFrame.new(newPos.Position, targetHRP.Position)
-
-                -- Атака M1
-                game:GetService("VirtualUser"):Button1Down(Vector2.new(0,0))
-                task.wait(0.05)
-                game:GetService("VirtualUser"):Button1Up(Vector2.new(0,0))
-
-                -- Прожатие скиллов поочерёдно
-                if Settings.AutoSkills then
-                    local skillKeys = {"1", "2", "3", "4"}
-                    local randomKey = skillKeys[math.random(1, #skillKeys)]
-                    
-                    VirtualInputManager:SendKeyEvent(true, Enum.KeyCode[randomKey], false, game)
-                    task.wait(0.05)
-                    VirtualInputManager:SendKeyEvent(false, Enum.KeyCode[randomKey], false, game)
-                end
+                hrp.CFrame = CFrame.new(newPos.Position, targetHRP.Position)
+                hrp.AssemblyLinearVelocity = Vector3.zero
             end
         end
 
-        -- Логика Полёта
+        -- Полёт через CFrame
         if Settings.Fly then
-            local hrp = char.HumanoidRootPart
-            local dir = Vector3.new(0,0,0)
+            local dir = Vector3.zero
             local uis = game:GetService("UserInputService")
 
             if uis:IsKeyDown(Enum.KeyCode.W) then dir = dir + Camera.CFrame.LookVector end
@@ -164,7 +278,10 @@ local function startHub()
             if uis:IsKeyDown(Enum.KeyCode.A) then dir = dir - Camera.CFrame.RightVector end
             if uis:IsKeyDown(Enum.KeyCode.D) then dir = dir + Camera.CFrame.RightVector end
 
-            hrp.Velocity = dir * Settings.FlySpeed
+            if dir.Magnitude > 0 then
+                hrp.CFrame = hrp.CFrame + (dir.Unit * (Settings.FlySpeed / 50))
+            end
+            hrp.AssemblyLinearVelocity = Vector3.zero
         end
     end)
 end
