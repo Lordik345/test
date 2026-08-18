@@ -1,4 +1,4 @@
--- [[ TSB ULTIMATE TOP HUB: OVERHEAD DAMAGE EDITION ]] --
+-- [[ TSB ULTIMATE TOP HUB: INSTA-KILL ULTRA FARM EDITION ]] --
 
 local KEY_TO_ENTER = "TOP"
 
@@ -14,10 +14,11 @@ local function startHub()
         AutoFarm = false,
         Target = nil,
         AutoSkills = false,
+        FastAttack = true,       -- Режим ультра-скорости
         
         -- Режимы позиционирования
         Overhead = false,        
-        OverheadHeight = 7,      
+        OverheadHeight = 5,      
         Underground = false,
         UndergroundDepth = 8,
         AirFarm = false,
@@ -70,9 +71,9 @@ local function startHub()
     end
 
     local Window = Rayfield:CreateWindow({
-        Name = "TSB TOP HUB | Ultimate Edition",
+        Name = "TSB TOP HUB | Instant Shred Edition",
         LoadingTitle = "TSB TOP HUB",
-        LoadingSubtitle = "Loaded Successfully",
+        LoadingSubtitle = "Ultra Fast Attack Active",
         ConfigurationSaving = { Enabled = false }
     })
 
@@ -106,7 +107,7 @@ local function startHub()
     })
 
     FarmTab:CreateToggle({
-        Name = "Auto Farm (Атака M1)",
+        Name = "Auto Farm (Быстрая M1 атака)",
         CurrentValue = false,
         Callback = function(v) Settings.AutoFarm = v end
     })
@@ -119,9 +120,9 @@ local function startHub()
 
     FarmTab:CreateSlider({
         Name = "Высота атаки сверху",
-        Range = {3, 18},
+        Range = {2, 12},
         Increment = 1,
-        CurrentValue = 7,
+        CurrentValue = 5,
         Callback = function(v) Settings.OverheadHeight = v end
     })
 
@@ -154,7 +155,7 @@ local function startHub()
     })
 
     FarmTab:CreateToggle({
-        Name = "Auto Skills (Использовать скиллы)",
+        Name = "Auto Skills (Спам скиллами 1-4)",
         CurrentValue = false,
         Callback = function(v) Settings.AutoSkills = v end
     })
@@ -271,27 +272,27 @@ local function startHub()
         end
     end)
 
-    -- Цикл кликов M1 и прожима скиллов
+    -- Супербыстрый поток атаки
     task.spawn(function()
-        while task.wait(0.08) do
+        while true do
+            task.wait()
             if Settings.AutoFarm and Settings.Target and Settings.Target.Character and not Settings.IsBlocking then
+                -- Моментальная отправка кликов M1
                 VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 1)
-                task.wait(0.02)
                 VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 1)
 
                 if Settings.AutoSkills then
                     local skillKeys = {Enum.KeyCode.One, Enum.KeyCode.Two, Enum.KeyCode.Three, Enum.KeyCode.Four}
-                    local randomKey = skillKeys[math.random(1, #skillKeys)]
-                    
-                    VirtualInputManager:SendKeyEvent(true, randomKey, false, game)
-                    task.wait(0.02)
-                    VirtualInputManager:SendKeyEvent(false, randomKey, false, game)
+                    for _, key in ipairs(skillKeys) do
+                        VirtualInputManager:SendKeyEvent(true, key, false, game)
+                        VirtualInputManager:SendKeyEvent(false, key, false, game)
+                    end
                 end
             end
         end
     end)
 
-    -- Главный физический цикл: Позиционирование, FOV, Auto Lock
+    -- Главный физический цикл: Наведение, хитбокс-позиционирование и FOV
     RunService.RenderStepped:Connect(function()
         FOVCircle.Visible = Settings.ShowFOV
         FOVCircle.Radius = Settings.FOVRadius
@@ -301,8 +302,8 @@ local function startHub()
         if not char or not char:FindFirstChild("HumanoidRootPart") then return end
         local hrp = char.HumanoidRootPart
 
-        -- Отключение коллизий для спец-режимов
-        if Settings.Underground or Settings.Overhead or Settings.AirFarm then
+        -- Отключение коллизий для идеального наложения хитбоксов
+        if Settings.Underground or Settings.Overhead or Settings.AirFarm or Settings.AutoFarm then
             for _, part in pairs(char:GetDescendants()) do
                 if part:IsA("BasePart") then 
                     part.CanCollide = false 
@@ -337,6 +338,7 @@ local function startHub()
                 hrp.AssemblyLinearVelocity = Vector3.zero
                 
                 if Settings.Overhead then
+                    -- Позиция СВЕРХУ (оптимизированная высота для мгновенного урона)
                     local topPos = targetHRP.Position + Vector3.new(0, Settings.OverheadHeight, 0)
                     local baseCF = CFrame.new(topPos, targetHRP.Position)
                     hrp.CFrame = baseCF * CFrame.Angles(math.rad(-90), 0, 0)
@@ -350,7 +352,8 @@ local function startHub()
                     local airPos = targetHRP.Position + Vector3.new(0, Settings.AirHeight, 0)
                     hrp.CFrame = CFrame.new(airPos, targetHRP.Position)
                 else
-                    local backVector = targetHRP.CFrame.LookVector * -2.5
+                    -- Мгновенная атака вплотную
+                    local backVector = targetHRP.CFrame.LookVector * -1.5
                     local targetPosition = targetHRP.Position + backVector
                     hrp.CFrame = CFrame.new(targetPosition, targetHRP.Position)
                 end
