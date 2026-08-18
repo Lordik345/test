@@ -1,4 +1,4 @@
--- [[ TSB ULTIMATE TOP HUB: AIR FIGHT & COMBAT EDITION ]] --
+-- [[ TSB ULTIMATE TOP HUB: PERFECT BACK-FARM EDITION ]] --
 
 local KEY_TO_ENTER = "TOP"
 
@@ -18,10 +18,8 @@ local function startHub()
         Orbit = false,
         Fly = false,
         FlySpeed = 50,
-        -- Настройки боя в воздухе
         AirFarm = false,
         AirHeight = 20,
-        -- Настройки защиты
         AutoBlock = false,
         BlockDistance = 12,
         AutoDash = false,
@@ -40,11 +38,10 @@ local function startHub()
         return nil
     end
 
-    -- === ИНТЕРФЕЙС RAYFIELD ===
     local Window = Rayfield:CreateWindow({
         Name = "TSB TOP HUB | Ultimate",
         LoadingTitle = "TSB TOP HUB",
-        LoadingSubtitle = "Air & Behind Farm Fixed",
+        LoadingSubtitle = "Behind-Target Fixed",
         ConfigurationSaving = { Enabled = false }
     })
 
@@ -52,7 +49,6 @@ local function startHub()
     local DefenseTab = Window:CreateTab("Defense", "shield")
     local MoveTab = Window:CreateTab("Movement", "move")
 
-    -- Выбор цели
     local Dropdown = FarmTab:CreateDropdown({
         Name = "Выбрать цель",
         Options = {"Нет целей"},
@@ -77,7 +73,6 @@ local function startHub()
         end
     })
 
-    -- Настройки Авто-Фарма
     FarmTab:CreateToggle({
         Name = "Auto Farm (Атака M1)",
         CurrentValue = false,
@@ -105,18 +100,11 @@ local function startHub()
     })
 
     FarmTab:CreateToggle({
-        Name = "Orbit Mode (Вращение во время боя)",
-        CurrentValue = false,
-        Callback = function(v) Settings.Orbit = v end
-    })
-
-    FarmTab:CreateToggle({
         Name = "Underground Mode (Под землёй)",
         CurrentValue = false,
         Callback = function(v) Settings.Underground = v end
     })
 
-    -- Настройки Защиты
     DefenseTab:CreateToggle({
         Name = "Auto Block (Авто-Блок)",
         CurrentValue = false,
@@ -137,15 +125,6 @@ local function startHub()
         Callback = function(v) Settings.AutoDash = v end
     })
 
-    DefenseTab:CreateSlider({
-        Name = "Кулдаун уклонения (сек)",
-        Range = {1, 10},
-        Increment = 0.5,
-        CurrentValue = 3,
-        Callback = function(v) Settings.DashCooldown = v end
-    })
-
-    -- Настройки Движения
     MoveTab:CreateToggle({
         Name = "Fly (Полёт)",
         CurrentValue = false,
@@ -160,7 +139,7 @@ local function startHub()
         Callback = function(v) Settings.FlySpeed = v end
     })
 
-    -- === ЛОГИКА АВТО-БЛОКА И У КЛОНЕНИЯ ===
+    -- Цикл блока и уклонения
     task.spawn(function()
         while task.wait(0.05) do
             local char = LocalPlayer.Character
@@ -203,9 +182,9 @@ local function startHub()
         end
     end)
 
-    -- === ЦИКЛ АТАКИ И СКИЛЛОВ ===
+    -- Цикл атаки M1 и скиллов
     task.spawn(function()
-        while task.wait(0.1) do
+        while task.wait(0.08) do
             if Settings.AutoFarm and Settings.Target and Settings.Target.Character and not Settings.IsBlocking then
                 VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 1)
                 task.wait(0.02)
@@ -223,13 +202,13 @@ local function startHub()
         end
     end)
 
-    -- === ГЛАВНЫЙ ЦИКЛ ПЕРЕМЕЩЕНИЯ И ФАРМА (60 FPS) ===
+    -- Главный цикл позиции (Исправлено позиционирование за спиной и под землей)
     RunService.Heartbeat:Connect(function()
         local char = LocalPlayer.Character
         if not char or not char:FindFirstChild("HumanoidRootPart") then return end
         local hrp = char.HumanoidRootPart
 
-        -- Noclip включен при авто-фарме
+        -- Отключаем коллизию для Noclip
         if Settings.Underground or Settings.AutoFarm or Settings.AirFarm then
             for _, part in pairs(char:GetDescendants()) do
                 if part:IsA("BasePart") then 
@@ -238,41 +217,34 @@ local function startHub()
             end
         end
 
-        -- Позиционирование Авто-Фарма
+        -- Точный расчёт позиции за спиной
         if Settings.AutoFarm and Settings.Target and Settings.Target.Character then
-            local targetChar = Settings.Target.Character
-            local targetHRP = targetChar:FindFirstChild("HumanoidRootPart")
+            local targetHRP = Settings.Target.Character:FindFirstChild("HumanoidRootPart")
 
             if targetHRP then
+                -- Вычисляем высоту
                 local yOffset = 0
                 if Settings.AirFarm then
                     yOffset = Settings.AirHeight
                 elseif Settings.Underground then
-                    yOffset = -3.5
+                    yOffset = -8 -- Увеличено до -8, чтобы вас не было видно над землей
                 end
 
                 if Settings.AirFarm then
-                    targetHRP.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+                    targetHRP.AssemblyLinearVelocity = Vector3.zero
                 end
 
-                local targetCF = targetHRP.CFrame
-                local newCFrame
+                -- Вектор ЗА СПИНОЙ врага (ровно по направлению взгляда врага)
+                local backVector = targetHRP.CFrame.LookVector * -2.2
+                local targetPosition = targetHRP.Position + backVector + Vector3.new(0, yOffset, 0)
 
-                if Settings.Orbit then
-                    local t = tick() * 6
-                    newCFrame = targetCF * CFrame.new(math.cos(t) * 1.8, yOffset, math.sin(t) * 1.8)
-                else
-                    -- Дистанция 1.8 студа ЗА СПИНОЙ цели (CFrame.new(0, yOffset, 1.8))
-                    newCFrame = targetCF * CFrame.new(0, yOffset, 1.8)
-                end
-
-                -- Вращение лицом прямо на цель
-                hrp.CFrame = CFrame.new(newCFrame.Position, targetHRP.Position)
+                -- Телепорт строго за спину и разворот ЛИЦОМ в затылок цели
+                hrp.CFrame = CFrame.new(targetPosition, targetHRP.Position + Vector3.new(0, yOffset, 0))
                 hrp.AssemblyLinearVelocity = Vector3.zero
             end
         end
 
-        -- Полёт через CFrame
+        -- Полёт
         if Settings.Fly then
             local dir = Vector3.zero
             local uis = game:GetService("UserInputService")
@@ -290,7 +262,7 @@ local function startHub()
     end)
 end
 
--- === МЕНЮ ВВОДА КЛЮЧА ===
+-- Гуи ключа
 local ScreenGui = Instance.new("ScreenGui", (gethui and gethui()) or game.CoreGui)
 local Frame = Instance.new("Frame", ScreenGui)
 Frame.Size = UDim2.new(0, 240, 0, 120)
