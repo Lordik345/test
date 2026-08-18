@@ -1,4 +1,4 @@
--- [[ TSB ULTIMATE TOP HUB: ORBITAL FLANK & ANTI-STUN V5 ]] --
+-- [[ TSB ULTIMATE: GOD SHREDDER V8 ]] --
 
 local KEY_TO_ENTER = "TOP"
 
@@ -12,187 +12,111 @@ local function startHub()
 
     local Settings = {
         AutoFarm = false,
+        AutoTargetSwitch = true,
         Target = nil,
         AutoSkills = false,
         
-        -- Орбитальные настройки (Фланговый обход)
-        OrbitSpeed = 3.5,
-        OrbitRadius = 6,
-
-        -- Дополнительные режимы высоты
-        Overhead = false,        
-        OverheadHeight = 4.5,    
-        Underground = false,
-        UndergroundDepth = 8,
-        AirFarm = false,
-        AirHeight = 20,
-
+        -- Ювелирная настройка хитбокса
+        FarmDistance = 2.0,     -- Идеальная дистанция для сбривания
+        HeightOffset = 0.8,     -- Пробитие блока сверху
+        
         Fly = false,
-        FlySpeed = 50,
+        FlySpeed = 60,
 
-        -- Auto Lock / Aim
+        -- Aim & FOV
         AutoLock = false,
-        LockSmoothness = 0.2,
+        LockSmoothness = 0.4,
         ShowFOV = false,
-        UseFOVCheck = false,
-        FOVRadius = 150,
+        FOVRadius = 160,
 
-        -- Защита и Анти-стан
+        -- Защита
         AntiStun = true,
-        AutoBlock = false,
-        BlockDistance = 12,
-        AutoDash = false,
-        DashCooldown = 3,
-        IsBlocking = false,
-        LastDash = 0
+        IsBlocking = false
     }
 
     local FOVCircle = Drawing.new("Circle")
     FOVCircle.Thickness = 2
-    FOVCircle.Color = Color3.fromRGB(255, 50, 50)
+    FOVCircle.Color = Color3.fromRGB(0, 255, 150)
     FOVCircle.Filled = false
-    FOVCircle.Transparency = 0.8
+    FOVCircle.Transparency = 0.9
     FOVCircle.Visible = false
 
-    local function getTarget(name)
-        if not name or name == "" then return nil end
-        for _, p in pairs(Players:GetPlayers()) do
-            if p.Name:lower():find(name:lower()) or p.DisplayName:lower():find(name:lower()) then 
-                return p 
+    -- Ультрабыстрый поиск живой цели
+    local function getBestTarget()
+        local myChar = LocalPlayer.Character
+        if not myChar or not myChar:FindFirstChild("HumanoidRootPart") then return nil end
+        local myPos = myChar.HumanoidRootPart.Position
+
+        local bestTarget = nil
+        local minDist = math.huge
+
+        for _, player in pairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer and player.Character then
+                local hum = player.Character:FindFirstChildOfClass("Humanoid")
+                local hrp = player.Character:FindFirstChild("HumanoidRootPart")
+
+                if hum and hum.Health > 0 and hrp then
+                    local dist = (myPos - hrp.Position).Magnitude
+                    if dist < minDist then
+                        minDist = dist
+                        bestTarget = player
+                    end
+                end
             end
         end
-        return nil
-    end
-
-    local function isTargetInFOV(targetChar)
-        if not targetChar or not targetChar:FindFirstChild("HumanoidRootPart") then return false end
-        local screenPos, onScreen = Camera:WorldToViewportPoint(targetChar.HumanoidRootPart.Position)
-        if not onScreen then return false end
-
-        local mousePos = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
-        local targetPos2D = Vector2.new(screenPos.X, screenPos.Y)
-        return (mousePos - targetPos2D).Magnitude <= Settings.FOVRadius
+        return bestTarget
     end
 
     local Window = Rayfield:CreateWindow({
-        Name = "TSB TOP HUB | Ultimate Orbital V5",
-        LoadingTitle = "TSB TOP HUB",
-        LoadingSubtitle = "Loaded All Features Successfully",
+        Name = "TSB GOD SHREDDER | V8 ZERO-DELAY",
+        LoadingTitle = "Engine Initialized...",
+        LoadingSubtitle = "Maximum DPS & Zero Lag",
         ConfigurationSaving = { Enabled = false }
     })
 
-    local FarmTab = Window:CreateTab("Auto Farm", "sword")
+    local FarmTab = Window:CreateTab("Auto Farm", "zap")
     local CombatTab = Window:CreateTab("Combat Lock", "crosshair")
-    local DefenseTab = Window:CreateTab("Defense", "shield")
     local MoveTab = Window:CreateTab("Movement", "move")
 
-    local Dropdown = FarmTab:CreateDropdown({
-        Name = "Выбрать цель (Target)",
-        Options = {"Нет целей"},
-        CurrentOption = "",
-        MultipleOptions = false,
-        Callback = function(v)
-            local selected = type(v) == "table" and v[1] or v
-            Settings.Target = getTarget(selected)
-        end
-    })
-
-    FarmTab:CreateButton({
-        Name = "Обновить список игроков",
-        Callback = function()
-            local list = {}
-            for _, p in pairs(Players:GetPlayers()) do
-                if p ~= LocalPlayer then 
-                    table.insert(list, p.Name) 
-                end
-            end
-            Dropdown:Refresh(#list > 0 and list or {"Нет целей"}, true)
-        end
-    })
-
     FarmTab:CreateToggle({
-        Name = "Auto Farm (Орбитальный Обход)",
+        Name = "⚡ SHREDDER ENGINE (Быстрый Фарм)",
         CurrentValue = false,
         Callback = function(v) Settings.AutoFarm = v end
     })
 
-    FarmTab:CreateSlider({
-        Name = "Скорость вращения (Orbit Speed)",
-        Range = {1, 10},
-        Increment = 0.5,
-        CurrentValue = 3.5,
-        Callback = function(v) Settings.OrbitSpeed = v end
-    })
-
-    FarmTab:CreateSlider({
-        Name = "Дистанция орбиты (Radius)",
-        Range = {3, 15},
-        Increment = 0.5,
-        CurrentValue = 6,
-        Callback = function(v) Settings.OrbitRadius = v end
+    FarmTab:CreateToggle({
+        Name = "🔄 Auto Target Switch (Авто-смена целей)",
+        CurrentValue = true,
+        Callback = function(v) Settings.AutoTargetSwitch = v end
     })
 
     FarmTab:CreateToggle({
-        Name = "Overhead Mode (Атака СВЕРХУ)",
-        CurrentValue = false,
-        Callback = function(v) Settings.Overhead = v end
-    })
-
-    FarmTab:CreateSlider({
-        Name = "Высота атаки сверху",
-        Range = {2, 10},
-        Increment = 0.5,
-        CurrentValue = 4.5,
-        Callback = function(v) Settings.OverheadHeight = v end
-    })
-
-    FarmTab:CreateToggle({
-        Name = "Underground Mode (Атака из-под земли)",
-        CurrentValue = false,
-        Callback = function(v) Settings.Underground = v end
-    })
-
-    FarmTab:CreateSlider({
-        Name = "Глубина под землёй",
-        Range = {3, 20},
-        Increment = 1,
-        CurrentValue = 8,
-        Callback = function(v) Settings.UndergroundDepth = v end
-    })
-
-    FarmTab:CreateToggle({
-        Name = "Air Fight (Бой в воздухе)",
-        CurrentValue = false,
-        Callback = function(v) Settings.AirFarm = v end
-    })
-
-    FarmTab:CreateSlider({
-        Name = "Высота боя в воздухе",
-        Range = {5, 80},
-        Increment = 5,
-        CurrentValue = 20,
-        Callback = function(v) Settings.AirHeight = v end
-    })
-
-    FarmTab:CreateToggle({
-        Name = "Auto Skills (Спам скиллами)",
+        Name = "🔥 Auto Skills (Быстрый спам 1-4)",
         CurrentValue = false,
         Callback = function(v) Settings.AutoSkills = v end
     })
 
-    -- COMBAT LOCK & FOV
-    CombatTab:CreateToggle({
-        Name = "Auto Lock (Захват Камеры / Aim)",
-        CurrentValue = false,
-        Callback = function(v) Settings.AutoLock = v end
+    FarmTab:CreateSlider({
+        Name = "Дистанция привязки",
+        Range = {0.5, 5},
+        Increment = 0.1,
+        CurrentValue = 2.0,
+        Callback = function(v) Settings.FarmDistance = v end
     })
 
-    CombatTab:CreateSlider({
-        Name = "Плавность наведения прицела",
-        Range = {0.05, 1},
-        Increment = 0.05,
-        CurrentValue = 0.2,
-        Callback = function(v) Settings.LockSmoothness = v end
+    FarmTab:CreateSlider({
+        Name = "Высота (Пробитие Блока)",
+        Range = {-1, 5},
+        Increment = 0.1,
+        CurrentValue = 0.8,
+        Callback = function(v) Settings.HeightOffset = v end
+    })
+
+    -- COMBAT LOCK
+    CombatTab:CreateToggle({
+        Name = "Auto Lock (Захват Камеры)",
+        CurrentValue = false,
+        Callback = function(v) Settings.AutoLock = v end
     })
 
     CombatTab:CreateToggle({
@@ -201,141 +125,82 @@ local function startHub()
         Callback = function(v) Settings.ShowFOV = v end
     })
 
-    CombatTab:CreateToggle({
-        Name = "Фильтр Aim Lock по FOV",
-        CurrentValue = false,
-        Callback = function(v) Settings.UseFOVCheck = v end
-    })
-
     CombatTab:CreateSlider({
-        Name = "Радиус FOV (Размер)",
+        Name = "Радиус FOV",
         Range = {50, 800},
         Increment = 10,
-        CurrentValue = 150,
+        CurrentValue = 160,
         Callback = function(v) Settings.FOVRadius = v end
     })
 
-    -- DEFENSE & ANTI-STUN
-    DefenseTab:CreateToggle({
-        Name = "Anti-Stun (Авто-Блок при уроне)",
-        CurrentValue = true,
-        Callback = function(v) Settings.AntiStun = v end
-    })
-
-    DefenseTab:CreateToggle({
-        Name = "Auto Block (Авто-Блок по дистанции)",
-        CurrentValue = false,
-        Callback = function(v) Settings.AutoBlock = v end
-    })
-
-    DefenseTab:CreateSlider({
-        Name = "Дистанция блока",
-        Range = {5, 25},
-        Increment = 1,
-        CurrentValue = 12,
-        Callback = function(v) Settings.BlockDistance = v end
-    })
-
-    DefenseTab:CreateToggle({
-        Name = "Auto Dash (Уклонение)",
-        CurrentValue = false,
-        Callback = function(v) Settings.AutoDash = v end
-    })
-
+    -- MOVEMENT
     MoveTab:CreateToggle({
         Name = "Fly (Полёт)",
         CurrentValue = false,
         Callback = function(v) Settings.Fly = v end
     })
 
-    MoveTab:CreateSlider({
-        Name = "Скорость полёта",
-        Range = {10, 200},
-        Increment = 5,
-        CurrentValue = 50,
-        Callback = function(v) Settings.FlySpeed = v end
-    })
+    -- Логика мгновенной авто-смены целей
+    task.spawn(function()
+        while task.wait(0.05) do
+            if Settings.AutoFarm and Settings.AutoTargetSwitch then
+                local valid = false
+                if Settings.Target and Settings.Target.Parent and Settings.Target.Character then
+                    local hum = Settings.Target.Character:FindFirstChildOfClass("Humanoid")
+                    if hum and hum.Health > 0 then
+                        valid = true
+                    end
+                end
 
-    -- Обработка Анти-стана
-    local function setupAntiStun(char)
+                if not valid then
+                    Settings.Target = getBestTarget()
+                end
+            end
+        end
+    end)
+
+    -- Анти-стан (Мгновенная срезка комбо)
+    local function bindAntiStun(char)
         local hum = char:WaitForChild("Humanoid", 5)
         if hum then
             hum.HealthChanged:Connect(function()
                 if Settings.AntiStun and not Settings.IsBlocking then
                     VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.F, false, game)
-                    task.wait(0.35)
+                    task.wait(0.15)
                     VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.F, false, game)
                 end
             end)
         end
     end
 
-    if LocalPlayer.Character then setupAntiStun(LocalPlayer.Character) end
-    LocalPlayer.CharacterAdded:Connect(setupAntiStun)
+    if LocalPlayer.Character then bindAntiStun(LocalPlayer.Character) end
+    LocalPlayer.CharacterAdded:Connect(bindAntiStun)
 
-    -- Блок и уклонение
+    -- УЛЬТРА-СКОРОСТНОЙ ПОТОК АТАКИ (SHREDDER STREAM)
     task.spawn(function()
-        while task.wait(0.05) do
-            local char = LocalPlayer.Character
-            if char and char:FindFirstChild("HumanoidRootPart") and Settings.Target and Settings.Target.Character then
-                local hrp = char.HumanoidRootPart
-                local targetHRP = Settings.Target.Character:FindFirstChild("HumanoidRootPart")
+        local skills = {Enum.KeyCode.One, Enum.KeyCode.Two, Enum.KeyCode.Three, Enum.KeyCode.Four}
+        local skillIdx = 1
 
-                if targetHRP then
-                    local dist = (hrp.Position - targetHRP.Position).Magnitude
-
-                    if Settings.AutoBlock and dist <= Settings.BlockDistance then
-                        if not Settings.IsBlocking then
-                            Settings.IsBlocking = true
-                            VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.F, false, game)
-                        end
-                    else
-                        if Settings.IsBlocking and not Settings.AntiStun then
-                            Settings.IsBlocking = false
-                            VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.F, false, game)
-                        end
-                    end
-
-                    if Settings.AutoDash and dist <= (Settings.BlockDistance - 2) then
-                        if tick() - Settings.LastDash >= Settings.DashCooldown then
-                            Settings.LastDash = tick()
-                            VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.S, false, game)
-                            VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Q, false, game)
-                            task.wait(0.05)
-                            VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Q, false, game)
-                            VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.S, false, game)
-                        end
-                    end
-                end
-            end
-        end
-    end)
-
-    -- Поток атаки (M1 + скиллы)
-    task.spawn(function()
-        local skillCounter = 1
-        local skillKeys = {Enum.KeyCode.One, Enum.KeyCode.Two, Enum.KeyCode.Three, Enum.KeyCode.Four}
-
-        while task.wait(0.03) do
-            if Settings.AutoFarm and Settings.Target and Settings.Target.Character and not Settings.IsBlocking then
+        while true do
+            RunService.Heartbeat:Wait()
+            if Settings.AutoFarm and Settings.Target and Settings.Target.Character then
+                -- Удар M1
                 VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 1)
-                task.wait(0.01)
                 VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 1)
 
+                -- Спам навыками
                 if Settings.AutoSkills then
-                    local keyToPress = skillKeys[skillCounter]
-                    VirtualInputManager:SendKeyEvent(true, keyToPress, false, game)
-                    task.wait(0.01)
-                    VirtualInputManager:SendKeyEvent(false, keyToPress, false, game)
-
-                    skillCounter = skillCounter + 1
-                    if skillCounter > #skillKeys then skillCounter = 1 end
+                    local key = skills[skillIdx]
+                    VirtualInputManager:SendKeyEvent(true, key, false, game)
+                    VirtualInputManager:SendKeyEvent(false, key, false, game)
+                    
+                    skillIdx = (skillIdx % #skills) + 1
                 end
             end
         end
     end)
 
-    -- Главный физический цикл
+    -- ГЛАВНЫЙ ЦИКЛ ПОЗИЦИОНИРОВАНИЯ (БЕЗ ЛАГОВ)
     RunService.RenderStepped:Connect(function()
         FOVCircle.Visible = Settings.ShowFOV
         FOVCircle.Radius = Settings.FOVRadius
@@ -345,89 +210,45 @@ local function startHub()
         if not char or not char:FindFirstChild("HumanoidRootPart") then return end
         local hrp = char.HumanoidRootPart
 
-        -- Отключение коллизий
-        if Settings.Underground or Settings.Overhead or Settings.AirFarm or Settings.AutoFarm then
-            for _, part in pairs(char:GetDescendants()) do
-                if part:IsA("BasePart") then 
-                    part.CanCollide = false 
-                end
+        -- Отключение физики коллизий для идеального «залипания»
+        if Settings.AutoFarm then
+            for _, p in pairs(char:GetChildren()) do
+                if p:IsA("BasePart") then p.CanCollide = false end
             end
         end
 
-        -- Логика AUTO LOCK
-        if Settings.AutoLock and Settings.Target and Settings.Target.Character then
-            local targetChar = Settings.Target.Character
-            local targetHRP = targetChar:FindFirstChild("HumanoidRootPart")
-
-            if targetHRP then
-                local canLock = true
-                if Settings.UseFOVCheck then
-                    canLock = isTargetInFOV(targetChar)
-                end
-
-                if canLock then
-                    local currentCF = Camera.CFrame
-                    local targetCF = CFrame.new(Camera.CFrame.Position, targetHRP.Position)
-                    Camera.CFrame = currentCF:Lerp(targetCF, Settings.LockSmoothness)
-                end
-            end
-        end
-
-        -- Орбитальное и позиционное перемещение
+        -- Привязка хитбокса и моментальный разворот
         if Settings.AutoFarm and Settings.Target and Settings.Target.Character then
             local targetHRP = Settings.Target.Character:FindFirstChild("HumanoidRootPart")
 
             if targetHRP then
                 hrp.AssemblyLinearVelocity = Vector3.zero
                 
-                if Settings.Overhead then
-                    local offset = Vector3.new(0, Settings.OverheadHeight, 1.5)
-                    local topPos = targetHRP.Position + offset
-                    hrp.CFrame = CFrame.new(topPos, targetHRP.Position)
-
-                elseif Settings.Underground then
-                    local underPos = targetHRP.Position - Vector3.new(0, Settings.UndergroundDepth, 0)
-                    local baseCF = CFrame.new(underPos, targetHRP.Position)
-                    hrp.CFrame = baseCF * CFrame.Angles(math.rad(90), 0, 0)
-
-                elseif Settings.AirFarm then
-                    local airPos = targetHRP.Position + Vector3.new(0, Settings.AirHeight, 0)
-                    hrp.CFrame = CFrame.new(airPos, targetHRP.Position)
-                else
-                    -- ОСНОВНОЙ ОРБИТАЛЬНЫЙ ФАРМ (Вращение за спиной)
-                    local time = tick() * Settings.OrbitSpeed
-                    local offset = Vector3.new(math.sin(time) * Settings.OrbitRadius, 0, math.cos(time) * Settings.OrbitRadius)
-                    local targetPos = targetHRP.Position + offset
-                    
-                    hrp.CFrame = CFrame.new(hrp.Position, targetHRP.Position):Lerp(CFrame.new(targetPos, targetHRP.Position), 0.2)
-                end
+                -- Рассчитываем точку строго за спиной врага с учётом высоты
+                local targetCF = targetHRP.CFrame
+                local shredPos = targetCF.Position - (targetCF.LookVector * Settings.FarmDistance) + Vector3.new(0, Settings.HeightOffset, 0)
+                
+                -- Жесткий замок позиции на цель
+                hrp.CFrame = CFrame.new(shredPos, targetHRP.Position)
             end
         end
 
-        -- Полёт
-        if Settings.Fly then
-            local dir = Vector3.zero
-            local uis = game:GetService("UserInputService")
-
-            if uis:IsKeyDown(Enum.KeyCode.W) then dir = dir + Camera.CFrame.LookVector end
-            if uis:IsKeyDown(Enum.KeyCode.S) then dir = dir - Camera.CFrame.LookVector end
-            if uis:IsKeyDown(Enum.KeyCode.A) then dir = dir - Camera.CFrame.RightVector end
-            if uis:IsKeyDown(Enum.KeyCode.D) then dir = dir + Camera.CFrame.RightVector end
-
-            if dir.Magnitude > 0 then
-                hrp.CFrame = hrp.CFrame + (dir.Unit * (Settings.FlySpeed / 50))
+        -- Auto Lock (Камера)
+        if Settings.AutoLock and Settings.Target and Settings.Target.Character then
+            local tHRP = Settings.Target.Character:FindFirstChild("HumanoidRootPart")
+            if tHRP then
+                Camera.CFrame = Camera.CFrame:Lerp(CFrame.new(Camera.CFrame.Position, tHRP.Position), Settings.LockSmoothness)
             end
-            hrp.AssemblyLinearVelocity = Vector3.zero
         end
     end)
 end
 
--- Меню ввода ключа
+-- GUI Ввода Ключа
 local ScreenGui = Instance.new("ScreenGui", (gethui and gethui()) or game.CoreGui)
 local Frame = Instance.new("Frame", ScreenGui)
 Frame.Size = UDim2.new(0, 240, 0, 120)
 Frame.Position = UDim2.new(0.5, -120, 0.5, -60)
-Frame.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+Frame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
 Frame.BorderSizePixel = 0
 
 local Title = Instance.new("TextLabel", Frame)
@@ -441,14 +262,14 @@ Input.Size = UDim2.new(0.8, 0, 0, 30)
 Input.Position = UDim2.new(0.1, 0, 0.35, 0)
 Input.PlaceholderText = "Ключ..."
 Input.Text = ""
-Input.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+Input.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
 Input.TextColor3 = Color3.fromRGB(255, 255, 255)
 
 local Btn = Instance.new("TextButton", Frame)
 Btn.Size = UDim2.new(0.8, 0, 0, 30)
 Btn.Position = UDim2.new(0.1, 0, 0.68, 0)
 Btn.Text = "Войти"
-Btn.BackgroundColor3 = Color3.fromRGB(60, 120, 240)
+Btn.BackgroundColor3 = Color3.fromRGB(0, 180, 120)
 Btn.TextColor3 = Color3.fromRGB(255, 255, 255)
 
 Btn.MouseButton1Click:Connect(function()
