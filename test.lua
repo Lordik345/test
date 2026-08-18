@@ -1,4 +1,4 @@
--- [[ TSB ULTIMATE TOP HUB: AIR FIGHT EDITION ]] --
+-- [[ TSB ULTIMATE TOP HUB: AIR FIGHT & COMBAT EDITION ]] --
 
 local KEY_TO_ENTER = "TOP"
 
@@ -15,12 +15,12 @@ local function startHub()
         Target = nil,
         AutoSkills = false,
         Underground = false,
-        Orbit = true,
+        Orbit = false,
         Fly = false,
         FlySpeed = 50,
         -- Настройки боя в воздухе
         AirFarm = false,
-        AirHeight = 25,
+        AirHeight = 20,
         -- Настройки защиты
         AutoBlock = false,
         BlockDistance = 12,
@@ -44,7 +44,7 @@ local function startHub()
     local Window = Rayfield:CreateWindow({
         Name = "TSB TOP HUB | Ultimate",
         LoadingTitle = "TSB TOP HUB",
-        LoadingSubtitle = "Air Fight Edition",
+        LoadingSubtitle = "Air & Behind Farm Fixed",
         ConfigurationSaving = { Enabled = false }
     })
 
@@ -92,9 +92,9 @@ local function startHub()
 
     FarmTab:CreateSlider({
         Name = "Высота боя в воздухе",
-        Range = {10, 100},
+        Range = {5, 80},
         Increment = 5,
-        CurrentValue = 25,
+        CurrentValue = 20,
         Callback = function(v) Settings.AirHeight = v end
     })
 
@@ -105,8 +105,8 @@ local function startHub()
     })
 
     FarmTab:CreateToggle({
-        Name = "Orbit Mode (Вращение)",
-        CurrentValue = true,
+        Name = "Orbit Mode (Вращение во время боя)",
+        CurrentValue = false,
         Callback = function(v) Settings.Orbit = v end
     })
 
@@ -135,6 +135,14 @@ local function startHub()
         Name = "Auto Dash (Уклонение)",
         CurrentValue = false,
         Callback = function(v) Settings.AutoDash = v end
+    })
+
+    DefenseTab:CreateSlider({
+        Name = "Кулдаун уклонения (сек)",
+        Range = {1, 10},
+        Increment = 0.5,
+        CurrentValue = 3,
+        Callback = function(v) Settings.DashCooldown = v end
     })
 
     -- Настройки Движения
@@ -215,13 +223,13 @@ local function startHub()
         end
     end)
 
-    -- === ГЛАВНЫЙ ЦИКЛ ПЕРЕМЕЩЕНИЯ И ФАРМА В ВОЗДУХЕ (60 FPS) ===
+    -- === ГЛАВНЫЙ ЦИКЛ ПЕРЕМЕЩЕНИЯ И ФАРМА (60 FPS) ===
     RunService.Heartbeat:Connect(function()
         local char = LocalPlayer.Character
         if not char or not char:FindFirstChild("HumanoidRootPart") then return end
         local hrp = char.HumanoidRootPart
 
-        -- Noclip включен при авто-фарме и бое в воздухе
+        -- Noclip включен при авто-фарме
         if Settings.Underground or Settings.AutoFarm or Settings.AirFarm then
             for _, part in pairs(char:GetDescendants()) do
                 if part:IsA("BasePart") then 
@@ -236,34 +244,30 @@ local function startHub()
             local targetHRP = targetChar:FindFirstChild("HumanoidRootPart")
 
             if targetHRP then
-                -- Телепортируем/поднимаем врага вместе с нами, если включен Air Fight
-                if Settings.AirFarm then
-                    targetHRP.AssemblyLinearVelocity = Vector3.zero
-                    targetHRP.CFrame = CFrame.new(targetHRP.Position.X, hrp.Position.Y, targetHRP.Position.Z)
-                end
-
                 local yOffset = 0
                 if Settings.AirFarm then
-                    -- Бой на высоте от текущей позиции врага/земли
                     yOffset = Settings.AirHeight
                 elseif Settings.Underground then
                     yOffset = -3.5
                 end
 
-                local baseCFrame = targetHRP.CFrame
                 if Settings.AirFarm then
-                    baseCFrame = CFrame.new(targetHRP.Position.X, targetHRP.Position.Y + yOffset, targetHRP.Position.Z)
+                    targetHRP.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
                 end
 
-                local newPos
+                local targetCF = targetHRP.CFrame
+                local newCFrame
+
                 if Settings.Orbit then
-                    local t = tick() * 5
-                    newPos = baseCFrame * CFrame.new(math.cos(t) * 3, 0, math.sin(t) * 3)
+                    local t = tick() * 6
+                    newCFrame = targetCF * CFrame.new(math.cos(t) * 1.8, yOffset, math.sin(t) * 1.8)
                 else
-                    newPos = baseCFrame * CFrame.new(0, 0, 2)
+                    -- Дистанция 1.8 студа ЗА СПИНОЙ цели (CFrame.new(0, yOffset, 1.8))
+                    newCFrame = targetCF * CFrame.new(0, yOffset, 1.8)
                 end
 
-                hrp.CFrame = CFrame.new(newPos.Position, targetHRP.Position)
+                -- Вращение лицом прямо на цель
+                hrp.CFrame = CFrame.new(newCFrame.Position, targetHRP.Position)
                 hrp.AssemblyLinearVelocity = Vector3.zero
             end
         end
