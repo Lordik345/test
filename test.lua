@@ -1,4 +1,4 @@
--- [[ TSB ULTIMATE TOP HUB: INSTA-KILL ULTRA FARM EDITION ]] --
+-- [[ TSB ULTIMATE TOP HUB: SHREDDER OVERHEAD EDITION ]] --
 
 local KEY_TO_ENTER = "TOP"
 
@@ -14,11 +14,10 @@ local function startHub()
         AutoFarm = false,
         Target = nil,
         AutoSkills = false,
-        FastAttack = true,       -- Режим ультра-скорости
         
-        -- Режимы позиционирования
+        -- Позиционирование
         Overhead = false,        
-        OverheadHeight = 5,      
+        OverheadHeight = 4.5,    -- Идеальная высота для попаданий
         Underground = false,
         UndergroundDepth = 8,
         AirFarm = false,
@@ -27,7 +26,7 @@ local function startHub()
         Fly = false,
         FlySpeed = 50,
 
-        -- Настройки Auto Lock / Aim
+        -- Auto Lock / Aim
         AutoLock = false,
         LockSmoothness = 0.2,
         ShowFOV = false,
@@ -71,9 +70,9 @@ local function startHub()
     end
 
     local Window = Rayfield:CreateWindow({
-        Name = "TSB TOP HUB | Instant Shred Edition",
+        Name = "TSB TOP HUB | Overhead Shredder Fixed",
         LoadingTitle = "TSB TOP HUB",
-        LoadingSubtitle = "Ultra Fast Attack Active",
+        LoadingSubtitle = "Optimal Hitbox Tracking Active",
         ConfigurationSaving = { Enabled = false }
     })
 
@@ -107,22 +106,22 @@ local function startHub()
     })
 
     FarmTab:CreateToggle({
-        Name = "Auto Farm (Быстрая M1 атака)",
+        Name = "Auto Farm (Скоростная M1 Атака)",
         CurrentValue = false,
         Callback = function(v) Settings.AutoFarm = v end
     })
 
     FarmTab:CreateToggle({
-        Name = "Overhead Mode (Атака СВЕРХУ)",
+        Name = "Overhead Mode (Атака СВЕРХУ с подстройкой угла)",
         CurrentValue = false,
         Callback = function(v) Settings.Overhead = v end
     })
 
     FarmTab:CreateSlider({
         Name = "Высота атаки сверху",
-        Range = {2, 12},
-        Increment = 1,
-        CurrentValue = 5,
+        Range = {2, 10},
+        Increment = 0.5,
+        CurrentValue = 4.5,
         Callback = function(v) Settings.OverheadHeight = v end
     })
 
@@ -155,7 +154,7 @@ local function startHub()
     })
 
     FarmTab:CreateToggle({
-        Name = "Auto Skills (Спам скиллами 1-4)",
+        Name = "Auto Skills (Спам скиллами)",
         CurrentValue = false,
         Callback = function(v) Settings.AutoSkills = v end
     })
@@ -229,7 +228,7 @@ local function startHub()
         Callback = function(v) Settings.FlySpeed = v end
     })
 
-    -- Цикл авто-блока и уклонения
+    -- Блок и уклонение
     task.spawn(function()
         while task.wait(0.05) do
             local char = LocalPlayer.Character
@@ -272,27 +271,33 @@ local function startHub()
         end
     end)
 
-    -- Супербыстрый поток атаки
+    -- Поток атаки (M1 + скиллы с оптимизированным таймингом)
     task.spawn(function()
-        while true do
-            task.wait()
+        local skillCounter = 1
+        local skillKeys = {Enum.KeyCode.One, Enum.KeyCode.Two, Enum.KeyCode.Three, Enum.KeyCode.Four}
+
+        while task.wait(0.03) do
             if Settings.AutoFarm and Settings.Target and Settings.Target.Character and not Settings.IsBlocking then
-                -- Моментальная отправка кликов M1
+                -- Клик M1
                 VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 1)
+                task.wait(0.01)
                 VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 1)
 
+                -- Прожим скиллов по очереди для предотвращения блокировки сервером
                 if Settings.AutoSkills then
-                    local skillKeys = {Enum.KeyCode.One, Enum.KeyCode.Two, Enum.KeyCode.Three, Enum.KeyCode.Four}
-                    for _, key in ipairs(skillKeys) do
-                        VirtualInputManager:SendKeyEvent(true, key, false, game)
-                        VirtualInputManager:SendKeyEvent(false, key, false, game)
-                    end
+                    local keyToPress = skillKeys[skillCounter]
+                    VirtualInputManager:SendKeyEvent(true, keyToPress, false, game)
+                    task.wait(0.01)
+                    VirtualInputManager:SendKeyEvent(false, keyToPress, false, game)
+
+                    skillCounter = skillCounter + 1
+                    if skillCounter > #skillKeys then skillCounter = 1 end
                 end
             end
         end
     end)
 
-    -- Главный физический цикл: Наведение, хитбокс-позиционирование и FOV
+    -- Физический цикл: Расположение персонажа, поворот и регистрация хитбокса
     RunService.RenderStepped:Connect(function()
         FOVCircle.Visible = Settings.ShowFOV
         FOVCircle.Radius = Settings.FOVRadius
@@ -302,7 +307,7 @@ local function startHub()
         if not char or not char:FindFirstChild("HumanoidRootPart") then return end
         local hrp = char.HumanoidRootPart
 
-        -- Отключение коллизий для идеального наложения хитбоксов
+        -- Отключение коллизий
         if Settings.Underground or Settings.Overhead or Settings.AirFarm or Settings.AutoFarm then
             for _, part in pairs(char:GetDescendants()) do
                 if part:IsA("BasePart") then 
@@ -330,7 +335,7 @@ local function startHub()
             end
         end
 
-        -- Расчёт позиционирования авто-фарма
+        -- Позиционирование для фарма
         if Settings.AutoFarm and Settings.Target and Settings.Target.Character then
             local targetHRP = Settings.Target.Character:FindFirstChild("HumanoidRootPart")
 
@@ -338,10 +343,12 @@ local function startHub()
                 hrp.AssemblyLinearVelocity = Vector3.zero
                 
                 if Settings.Overhead then
-                    -- Позиция СВЕРХУ (оптимизированная высота для мгновенного урона)
-                    local topPos = targetHRP.Position + Vector3.new(0, Settings.OverheadHeight, 0)
-                    local baseCF = CFrame.new(topPos, targetHRP.Position)
-                    hrp.CFrame = baseCF * CFrame.Angles(math.rad(-90), 0, 0)
+                    -- Позиционирование под углом ~45-60 градусов для идеальной регистрации M1 и скиллов
+                    local offset = Vector3.new(0, Settings.OverheadHeight, 1.5)
+                    local topPos = targetHRP.Position + offset
+                    
+                    -- Направление взгляда прямо на противника
+                    hrp.CFrame = CFrame.new(topPos, targetHRP.Position)
 
                 elseif Settings.Underground then
                     local underPos = targetHRP.Position - Vector3.new(0, Settings.UndergroundDepth, 0)
@@ -352,8 +359,8 @@ local function startHub()
                     local airPos = targetHRP.Position + Vector3.new(0, Settings.AirHeight, 0)
                     hrp.CFrame = CFrame.new(airPos, targetHRP.Position)
                 else
-                    -- Мгновенная атака вплотную
-                    local backVector = targetHRP.CFrame.LookVector * -1.5
+                    -- Обычный фарм вплотную
+                    local backVector = targetHRP.CFrame.LookVector * -1.8
                     local targetPosition = targetHRP.Position + backVector
                     hrp.CFrame = CFrame.new(targetPosition, targetHRP.Position)
                 end
